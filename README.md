@@ -2,6 +2,8 @@
 
 DMSpeaks Lite prepares recordings of your character’s name for NPC dialogue in World of Warcraft Forever. The Windows companion fetches recordings. The add-on plays them in the game.
 
+DMSpeaks Lite builds on **Spoken by rustykey (Rusty Key)**. Spoken provides the WoW dialogue player and the original NPC voice recordings that Lite adapts to speak a character’s name, race, or class in context. Thank you to rustykey and the Spoken contributors. [Spoken on GitHub](https://github.com/rusty-key/spoken-wow) · [Spoken on CurseForge](https://www.curseforge.com/wow/addons/spoken)
+
 ## Windows Beta 12 name audio update
 
 [Download the Windows x64 name audio update](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Name-Audio-Update-Windows-x64.zip)

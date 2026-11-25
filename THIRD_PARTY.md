@@ -4,6 +4,8 @@ DMSpeaks contributors license their original software and documentation under th
 
 ## World of Warcraft and Spoken
 
+Thank you to **rustykey (Rusty Key)** and the Spoken contributors for the dialogue player and original NPC voice recordings on which DMSpeaks Lite builds. [Spoken on GitHub](https://github.com/rusty-key/spoken-wow) · [Spoken on CurseForge](https://www.curseforge.com/wow/addons/spoken)
+
 The Windows Beta 12 name audio update contains companion code and installation files. It uses game and voice-pack files already installed on the player’s computer.
 
 World of Warcraft is a trademark of Blizzard Entertainment. Blizzard retains its rights in its quest dialogue and game artwork. Spoken’s MIT license covers the code its contributors wrote. Spoken separately identifies the sources of its artwork and the provider terms relevant to its generated voice packs. Each rights holder’s terms govern reuse of their material. [Spoken’s license](https://github.com/rusty-key/spoken-wow/blob/master/LICENSE) · [Spoken’s third-party notice](https://github.com/rusty-key/spoken-wow/blob/master/THIRD_PARTY.md)
