@@ -42,6 +42,12 @@ Put FFmpeg and FFprobe on your PATH. Fresh speech also needs the PocketSphinx co
 
 The source UI uses project-drawn waveform icons. Where an installation has a matching character portrait the companion can display it. Otherwise the source UI uses its generic icon. Playback on shared storage uses a short digital-silence probe. A source installation can encode that probe locally.
 
+## Build Windows Setup with separate playback packs
+
+Use the verified compact Beta 12 kit and its build receipt as the input to `packaging/windows-setup/build_spoken_release.py`. Pass the kit directory as `--previous`, the SHA-256 of its `verified.json` as `--previous-sha256`, the Windows tools directory as `--tools`, and a new directory as `--output`. Add `--release-tag` when Setup should look for missing ZIPs on GitHub. The output receipt identifies each asset by size and SHA-256.
+
+Setup requires Spoken and the English Spoken packs that the player wants to use. It installs the common Lite files and name data, then installs the matching Lite Alliance, Horde, Shared, or Gossip archives for the Spoken packs already in the selected game folder. It checks local ZIPs first and downloads missing ZIPs only when a release tag was supplied at build time.
+
 ## Build the historical Windows Setup and Recovery
 
 The NSIS recipes and DMSpeaks installation helpers are in `installer/`. The native build uses the registered Beta 12 base payload. Setup requires acceptance of the [Lite end-user agreement](EULA.md) and then displays the MIT license, Spoken credits and runtime notices before game-folder selection. An unattended install uses `/S /ACCEPTEULA` after the operator has accepted the agreement. The builder checks supplied inputs by SHA-256, compiles Setup and Recovery, compares the extracted payloads and exercises install tracking in disposable Windows registry hives. This recipe uses the frozen Beta 12 base archive. Subsequent companion and content updates have their own versions.

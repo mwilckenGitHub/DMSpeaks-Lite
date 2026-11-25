@@ -88,6 +88,41 @@ Var PlacementOption
 Var GameFolder
 Var PreviousGameFolder
 Var ArchivePath
+!ifdef EXTERNAL_MEDIA
+!macro StageReleaseMedia game wow result
+    InitPluginsDir
+    SetOutPath "$PLUGINSDIR"
+    ClearErrors
+    File /oname=lite-media.json "${EXTERNAL_MEDIA}"
+    File /oname=stage_release_media.py "${STAGE_RELEASE_MEDIA}"
+    ${If} ${Errors}
+        StrCpy ${result} 1
+    ${Else}
+        !insertmacro ShowPhase "$(CheckingVoices)"
+        nsExec::ExecToLog '"$PLUGINSDIR\cleanup\python.exe" -I -B "$PLUGINSDIR\stage_release_media.py" "${game}" "${wow}\." "$LOCALAPPDATA\DMSpeaksLiteBeta\release-downloads\${SETUP_ID}" "$PLUGINSDIR\."'
+        Pop ${result}
+        ${If} ${result} == "0"
+            ReadINIStr $ArchivePath "$PLUGINSDIR\lite-media.ini" media game
+            ${If} $ArchivePath == ""
+                StrCpy ${result} 1
+            ${EndIf}
+        ${EndIf}
+    ${EndIf}
+!macroend
+
+!macro ExternalPrefix package result
+    !insertmacro ShowPhase "$(PreparingSpeechData)"
+    SetOutPath "$PLUGINSDIR"
+    ClearErrors
+    File /oname=install_prefix_media.py "${PREFIX_INSTALL_SCRIPT}"
+    ${If} ${Errors}
+        StrCpy ${result} 1
+    ${Else}
+        nsExec::ExecToLog '"${package}\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_prefix_media.py" "${package}\." "$PLUGINSDIR\prefix-data.zip" "${PREFIX_MANIFEST_HASH}" "${PREFIX_ARCHIVE_HASH}"'
+        Pop ${result}
+    ${EndIf}
+!macroend
+!endif
 Var ActiveBuild
 Var OtherClients
 Var SharedOption
@@ -422,6 +457,13 @@ Section
     !insertmacro ShowPhase "$(InstallingProgram)"
     !insertmacro StageCleanupTools
     IfErrors maintenance_error
+    !ifdef EXTERNAL_MEDIA
+        !insertmacro StageReleaseMedia "$EXEDIR\DMSpeaks-WoW.zip" "$INSTDIR" $3
+        ${If} $3 != "0"
+            SetErrorLevel 1
+            !insertmacro FailPhase "$(ReleaseMediaError)"
+        ${EndIf}
+    !endif
     StrCpy $0 "$LOCALAPPDATA\DMSpeaksLite\Builds"
     StrCpy $1 "$0\${BUILD}"
     StrCpy $2 ""
@@ -450,7 +492,11 @@ place_fresh_runtime:
     IfErrors unpack_error
     !include "${PAYLOAD_COMMANDS}"
     IfErrors unpack_error
-    !ifdef PREFIX_ARCHIVE
+    !ifdef EXTERNAL_MEDIA
+        !insertmacro ExternalPrefix "$2" $3
+        StrCmp $3 "0" +2
+        Goto unpack_error
+    !else ifdef PREFIX_ARCHIVE
         StrCpy $4 "$2"
         Call InstallPrefixMedia
         StrCmp $3 "0" +2
@@ -466,7 +512,13 @@ concurrent_install:
 refresh_lite:
     IfFileExists "$1\runtime\python\python.exe" 0 damaged
     !insertmacro ShowPhase "$(RefreshingProgram)"
-    !ifdef PREFIX_ARCHIVE
+    !ifdef EXTERNAL_MEDIA
+        !insertmacro ExternalPrefix "$1" $3
+        ${If} $3 != "0"
+            SetErrorLevel 1
+            !insertmacro FailPhase "$(SpeechDataError)"
+        ${EndIf}
+    !else ifdef PREFIX_ARCHIVE
         StrCpy $4 "$1"
         Call InstallPrefixMedia
         StrCmp $3 "0" prefix_media_ready
@@ -492,10 +544,14 @@ start_lite:
     SetOutPath "$PLUGINSDIR"
     File /oname=install_addon.py "${PLACEMENT}"
     File /oname=stock-files.json.gz "${STOCK_OWNERS}"
-    File /oname=addon-update.zip "${DELTA}"
     !insertmacro ShowPhase "$(PreparingVoices)"
     !insertmacro ShowOverall 25 "$(PreparingVoicesPhase)"
-    nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_addon.py" "$INSTDIR\." "$EXEDIR\DMSpeaks-WoW.zip" "$PLUGINSDIR\addon-update.zip" $PlacementOption --progress-window $PhaseBar --desktop-complete'
+    !ifdef EXTERNAL_MEDIA
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_addon.py" "$INSTDIR\." "$ArchivePath" --catalog "$PLUGINSDIR\embedded-catalog.zip" --release-packs "$PLUGINSDIR\lite-packs.json" $PlacementOption --progress-window $PhaseBar --desktop-complete'
+    !else
+        File /oname=addon-update.zip "${DELTA}"
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_addon.py" "$INSTDIR\." "$EXEDIR\DMSpeaks-WoW.zip" "$PLUGINSDIR\addon-update.zip" $PlacementOption --progress-window $PhaseBar --desktop-complete'
+    !endif
     Pop $3
     StrCmp $3 "0" installed
     StrCmp $3 "5" install_files_in_use
@@ -539,9 +595,13 @@ installed:
     WriteRegStr HKCU "${APP_ENTRY}" "CleanupRevision" "${SETUP_ID}"
     WriteRegStr HKCU "${APP_ENTRY}" "ActiveBuild" "${BUILD}"
     WriteRegStr HKCU "${APP_ENTRY}" "GameFolder" "$INSTDIR"
-    IfFileExists "$EXEDIR\DMSpeaks-WoW.zip" 0 keep_archive_path
-    WriteRegStr HKCU "${APP_ENTRY}" "ArchivePath" "$EXEDIR\DMSpeaks-WoW.zip"
+    !ifdef EXTERNAL_MEDIA
+        WriteRegStr HKCU "${APP_ENTRY}" "ArchivePath" "$ArchivePath"
+    !else
+        IfFileExists "$EXEDIR\DMSpeaks-WoW.zip" 0 keep_archive_path
+        WriteRegStr HKCU "${APP_ENTRY}" "ArchivePath" "$EXEDIR\DMSpeaks-WoW.zip"
 keep_archive_path:
+    !endif
     WriteRegStr HKCU "${APP_ENTRY}" "UninstallString" '"$OUTDIR\DMSpeaks-Maintenance.exe" /UNINSTALL'
     WriteRegStr HKCU "${APP_ENTRY}" "ModifyPath" '"$OUTDIR\DMSpeaks-Maintenance.exe" /SHORTCUTS'
     !insertmacro SaveShortcutChoices
@@ -698,7 +758,11 @@ Function un.ReadMaintenanceChoice
     StrCpy $PlacementOption "repair"
     StrCpy $MaintenanceTitle "$(RepairingTitle)"
     StrCpy $MaintenanceDescription "$(RepairingDescription)"
-    IfFileExists "$ArchivePath" done
+    !ifdef EXTERNAL_MEDIA
+        StrCmp $ArchivePath "" 0 done
+    !else
+        IfFileExists "$ArchivePath" done
+    !endif
     nsDialogs::SelectFileDialog open "$GameFolder" "$(VoiceZipFilter)|DMSpeaks-WoW.zip|$(ZipFilter)|*.zip"
     Pop $0
     StrCmp $0 "" canceled
@@ -749,13 +813,28 @@ build_ready:
     StrCmp $PlacementOption "recoverycheck" remove
     StrCmp $PlacementOption "remove" remove
     StrCmp $PlacementOption "shortcuts" shortcuts
-    IfFileExists "$ArchivePath" 0 repair_missing
+    !ifdef EXTERNAL_MEDIA
+        StrCmp $ArchivePath "" repair_missing
+    !else
+        IfFileExists "$ArchivePath" 0 repair_missing
+    !endif
     IfFileExists "$1\runtime\python\python.exe" 0 damaged
     IfSilent repair_run
     StrCmp $RepairCancel 0 placement_error
 repair_run:
     !insertmacro ShowPhase "$(CheckingVoices)"
-    nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --repair --progress-window $PhaseBar --repair-cancel-window $RepairCancel'
+    !ifdef EXTERNAL_MEDIA
+        !insertmacro StageCleanupTools
+        IfErrors placement_error
+        !insertmacro StageReleaseMedia "$ArchivePath" "$GameFolder" $0
+        StrCmp $0 "0" 0 placement_error
+        !insertmacro ExternalPrefix "$1" $0
+        StrCmp $0 "0" 0 placement_error
+        SetOutPath "$INSTDIR"
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --catalog "$PLUGINSDIR\embedded-catalog.zip" --release-packs "$PLUGINSDIR\lite-packs.json" --repair --progress-window $PhaseBar --repair-cancel-window $RepairCancel'
+    !else
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --repair --progress-window $PhaseBar --repair-cancel-window $RepairCancel'
+    !endif
     Pop $0
     Call un.RestoreRepairCancel
     StrCmp $0 "4" repair_canceled

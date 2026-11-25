@@ -36,6 +36,7 @@ local english = {
     contentCatalog = "Name Fetch Data",
     contentPresent = "Present",
     contentMissing = "Missing",
+    contentDisabled = "Disabled",
     contentUnchecked = "Not checked",
     contentRow = "{name} · {status}",
     contentChecked = "Last checked by Lite {time}",
@@ -152,12 +153,41 @@ local function Text(key, values)
 end
 
 local contentCollections = {
-    {"alliance", "contentAlliance", "alliance-quests-framed"},
-    {"horde", "contentHorde", "horde-quests-framed"},
-    {"shared", "contentShared", "shared"},
-    {"gossip", "contentGossip", "gossip-framed"},
+    {"alliance", "contentAlliance", "alliance-quests-framed", "DMSpeaksPersonalizedAlliance"},
+    {"horde", "contentHorde", "horde-quests-framed", "DMSpeaksPersonalizedHorde"},
+    {"shared", "contentShared", "shared", "DMSpeaksPersonalizedShared"},
+    {"gossip", "contentGossip", "gossip-framed", "DMSpeaksPersonalizedGossip"},
     {"catalog", "contentCatalog", "dmspeaks-framed"},
 }
+
+local function BindPlaybackCheck(check, label, collection, roster, stamp)
+    local selector = collection[4]
+    local metadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    local enable = (C_AddOns and C_AddOns.EnableAddOn) or EnableAddOn
+    local disable = (C_AddOns and C_AddOns.DisableAddOn) or DisableAddOn
+    local character = UnitName("player")
+    local function Enabled()
+        if C_AddOns and C_AddOns.GetAddOnEnableState then
+            return C_AddOns.GetAddOnEnableState(selector, character) ~= 0
+        end
+        return not GetAddOnEnableState or GetAddOnEnableState(character, selector) ~= 0
+    end
+    local function Update()
+        local known = metadata and metadata(selector, "X-DMSpeaks-Playback-Selector") == "1"
+        local available = known and (not stamp or roster[collection[1]] ~= false)
+        local enabled = available and Enabled()
+        check:SetEnabled(available and enable and disable and true or false)
+        check:SetChecked(enabled == true)
+        local status = not available and "contentMissing" or enabled and "contentPresent" or "contentDisabled"
+        label:SetText(Text("contentRow", {name = Text(collection[2]), status = Text(status)}))
+    end
+    check:SetScript("OnClick", function(self)
+        if self:GetChecked() then enable(selector, character)
+        else disable(selector, character) end
+        Update()
+    end)
+    return Update
+end
 
 local function CreateInstalledContent(panel, resize)
     local body = CreateFrame("Frame", nil, panel)
@@ -177,19 +207,27 @@ local function CreateInstalledContent(panel, resize)
         icon:SetSize(24, 24)
         icon:SetTexture("Interface\\AddOns\\DMSpeaksLite\\Icons\\" .. collection[3] .. ".tga")
         local label = body:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        label:SetPoint("TOPLEFT", icon, "TOPRIGHT", 8, -3)
+        local check, update
+        if collection[4] then
+            check = CreateFrame("CheckButton", nil, body, "UICheckButtonTemplate")
+            check:SetSize(24, 24)
+            check:SetPoint("LEFT", icon, "RIGHT", 5, 0)
+            update = BindPlaybackCheck(check, label, collection, roster, stamp)
+        end
+        label:SetPoint("TOPLEFT", check or icon, "TOPRIGHT", 8, -3)
         label:SetPoint("RIGHT", body, "RIGHT", -6, 0)
         label:SetJustifyH("LEFT")
         local present = stamp and roster[collection[1]]
         local status = not stamp and "contentUnchecked" or present == true and "contentPresent"
             or present == false and "contentMissing" or "contentUnchecked"
         label:SetText(Text("contentRow", {name = Text(collection[2]), status = Text(status)}))
-        rows[#rows + 1] = {icon = icon, label = label}
+        rows[#rows + 1] = {icon = icon, label = label, update = update}
     end
     resize[#resize + 1] = function(width)
         body:SetWidth(math.max(1, width - 36))
         local height = math.max(14, lastChecked:GetStringHeight() or 0) + 13
         for _, row in ipairs(rows) do
+            if row.update then row.update() end
             row.icon:ClearAllPoints()
             row.icon:SetPoint("TOPLEFT", body, "TOPLEFT", 0, -height)
             height = height + math.max(24, (row.label:GetStringHeight() or 0) + 3) + 4

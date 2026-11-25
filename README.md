@@ -26,11 +26,15 @@ The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitH
 
 ## First-time installation
 
-The Beta 12 source is available here. Publication of the Lite installer and companion audio ZIP is pending redistribution clearance for the bundled material.
+The Beta 12 source is available here. Publication of the Lite installer and audio packs is pending redistribution clearance for the media.
 
-The complete Windows kit uses **DMSpeaks Lite - WOW Setup.exe** and **DMSpeaks-WoW.zip**. Keep the two files together and run Setup. It installs the desktop companion, playback assets, and prepared name catalog.
+Install Spoken and the English Spoken voice packs you want in WoW first. Run **DMSpeaks Lite - WOW Setup.exe** and select the same WoW folder. Setup uses the matching Lite Alliance, Horde, Shared, and Gossip playback packs for the Spoken packs it finds there. It also installs the Lite add-on and its common name data.
+
+Setup can retrieve the matching Lite ZIPs from its GitHub release when they are available. To install with downloaded copies, keep the ZIPs beside Setup and leave them zipped. In WoW, use **DMSpeaks Lite → Installed content** to enable or disable installed packs. Missing packs have disabled checkboxes.
 
 Lite connects when Spoken provides the playback functions it uses, regardless of version number. It verifies the installed English recording and caption before selecting a matching plan. [Spoken add-on and voice packs](https://www.curseforge.com/wow/addons/spoken#description)
+
+Spoken documents the source of its generated audio, game text, and artwork, including the terms that apply to those materials. [Spoken’s third-party notice](https://github.com/rusty-key/spoken-wow/blob/master/THIRD_PARTY.md)
 
 ## Sync a new character
 
