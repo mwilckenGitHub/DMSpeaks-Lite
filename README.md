@@ -4,6 +4,10 @@ DMSpeaks Lite prepares recordings of your character’s name for NPC dialogue in
 
 DMSpeaks Lite builds on **Spoken by rustykey (Rusty Key)**. Spoken provides the WoW dialogue player and the original NPC voice recordings that Lite adapts to speak a character’s name, race, or class in context. Thank you to rustykey and the Spoken contributors. [Spoken on GitHub](https://github.com/rusty-key/spoken-wow) · [Spoken on CurseForge](https://www.curseforge.com/wow/addons/spoken)
 
+## Developer source
+
+Build the standalone Python functions or run the companion tests on a clean checkout. The repository includes the Windows companion, browser UI, WoW integration, installer recipes and examples. This source version uses project-drawn icons. A playable installation also requires matching, separately obtained NPC audio and name-catalog data. [Build and verification guide](BUILDING.md) · [Optional example corpora](examples)
+
 ## Windows Beta 12 name audio update
 
 [Download the Windows x64 name audio update](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Name-Audio-Update-Windows-x64.zip)
@@ -22,7 +26,11 @@ The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitH
 
 ## First-time installation
 
-This download updates an installed copy of Lite. A full installer for new players is pending. You can get the original Spoken add-on and voice packs from [Spoken’s publisher](https://www.curseforge.com/wow/addons/spoken).
+The Beta 12 source is available here. Publication of the Lite installer and companion audio ZIP is pending redistribution clearance for the bundled material.
+
+The complete Windows kit uses **DMSpeaks Lite - WOW Setup.exe** and **DMSpeaks-WoW.zip**. Keep the two files together and run Setup. It installs the desktop companion, playback assets, and prepared name catalog.
+
+Lite connects when Spoken provides the playback functions it uses, regardless of version number. It verifies the installed English recording and caption before selecting a matching plan. [Spoken add-on and voice packs](https://www.curseforge.com/wow/addons/spoken#description)
 
 ## Sync a new character
 

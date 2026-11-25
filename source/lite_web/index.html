@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="lite-token" content="__LITE_TOKEN__">
+  <meta name="lite-session-scope" content="__LITE_SESSION_SCOPE__">
+  <meta name="lite-build" content="__LITE_BUILD__">
+  <meta name="lite-version" content="__LITE_VERSION__">
+  <title data-msg="pageTitle">Fetch Settings · DMSpeaks Lite - WOW</title>
+  <link rel="icon" type="image/png" href="/dmspeaks-mark.png">
+  <link rel="stylesheet" href="/lite.css">
+  <script src="/locale-bundles.js" defer></script>
+  <script src="/menu-help-en.js" defer></script>
+  <script src="/locale.js" defer></script>
+  <script src="/tooltips.js" defer></script>
+  <script src="/lite.js" defer></script>
+  <script src="/recording-review.js" defer></script>
+  <script src="/desktop-help.js" defer></script>
+  <script src="/card-menu.js" defer></script>
+</head>
+<body>
+  <main id="settings-panel">
+    <header class="workspace-header">
+      <img class="app-icon" src="/dmspeaks-mark.png" width="56" height="56" alt="">
+      <div class="workspace-brand"><h1>DMSpeaks Lite</h1><p>World of Warcraft</p></div>
+      <nav id="app-menu" aria-label="Application menu" data-aria-msg="appMenu"></nav>
+    </header>
+    <input id="card-file" type="file" accept=".zip,application/zip" hidden>
+    <p id="card-status" role="status"></p>
+    <dialog id="card-dialog" aria-labelledby="card-dialog-title">
+      <h2 id="card-dialog-title"></h2>
+      <div id="card-dialog-body"></div>
+      <div class="actions"><button type="button" id="card-confirm" data-msg="exportButton">Export</button>
+        <button type="button" id="card-close" data-msg="close">Close</button></div>
+    </dialog>
+    <div class="workspace-columns" id="character-workspace">
+    <section id="characters" aria-labelledby="characters-heading">
+      <div class="section-title"><h2 id="characters-heading" data-msg="profiles">Character profiles</h2><span class="workspace-count" id="roster-count" hidden></span></div>
+      <label class="roster-search"><span class="visually-hidden" data-msg="deskFindLabel">Find a character or realm</span>
+        <input id="character-search" type="search" autocomplete="off" placeholder="Find character or realm" data-placeholder-msg="deskSearchPlaceholder">
+      </label>
+      <p id="roster-status" role="status" data-msg="loadingProfiles">Loading characters…</p>
+      <div class="character-sync">
+        <label class="current-character"><input id="follow-character" data-tip="followTip" type="radio" name="fetch-character" checked> <span data-msg="current">Current character</span></label>
+        <button type="button" id="refresh-character" class="secondary" data-msg="refreshCharacter" aria-describedby="character-sync-hint">Refresh character</button>
+      </div>
+      <p id="character-sync-hint" data-msg="characterSyncHint">Type /reload in WoW chat to save the character you’re playing.</p>
+      <p id="character-sync-status" role="status"></p>
+      <ul id="character-list" aria-label="Saved characters" data-aria-msg="savedCharacters"></ul>
+      <p id="search-status" role="status"></p>
+      <button type="button" id="remove-profiles" class="secondary" data-msg="removeProfiles" hidden>Remove profiles…</button>
+      <details id="removed-profiles" hidden>
+        <summary data-msg="removedProfiles">Removed profiles</summary>
+        <ul id="removed-profile-list"></ul>
+      </details>
+      <p id="profile-removal-status" role="status"></p>
+    </section>
+    <section id="name-fetch" aria-labelledby="name-fetch-heading">
+      <div id="selected-character" class="selected-character" hidden>
+        <div id="selected-portrait"></div>
+        <div class="selected-details"><h2 id="fetch-character" dir="auto"></h2>
+          <p id="selected-meta"></p><div id="selected-storage"></div></div>
+        <button type="button" id="remove-profile" class="secondary" data-msg="removeProfile" hidden>Remove profile…</button>
+      </div>
+      <dialog id="profile-removal" aria-labelledby="profile-removal-title" aria-describedby="profile-removal-description">
+        <h2 id="profile-removal-title" data-msg="removeProfileTitle">Remove profile?</h2>
+        <p id="profile-removal-description"></p>
+        <fieldset id="profile-removal-selection" aria-labelledby="profile-removal-title" hidden>
+          <label><input type="checkbox" id="remove-all-profiles"><span data-msg="selectAllProfiles">Select all profiles</span></label>
+          <div id="profile-removal-choices"></div>
+        </fieldset>
+        <div class="actions">
+          <form method="dialog"><button type="submit" data-msg="cancel" autofocus>Cancel</button></form>
+          <button type="button" id="confirm-profile-removal" data-msg="removeProfileConfirm">Remove profile</button>
+        </div>
+        <p id="profile-removal-error" role="status"></p>
+      </dialog>
+      <h2 id="name-fetch-heading" data-msg="fetchHeading">Fetch name audio</h2>
+      <p id="character-hint" data-msg="linkCharacter">Choose a saved card, import a backup, or log in to a character in WoW.</p>
+      <div class="fetch-fields">
+        <div><span class="field-label" data-msg="provider">Speech provider</span>
+          <button type="button" class="provider-summary" id="selection-summary" aria-controls="connection-settings" data-msg="speechSettings">Speech settings</button></div>
+        <label><span data-msg="area">Where to fetch names</span>
+          <select id="coverage" data-tip="areaTip" name="coverage" form="setup-form">
+            <option value="starting-area" data-msg="startingArea">Starting area</option>
+            <option value="route" data-msg="nearby">Starting area and nearby zones</option>
+            <option value="all" data-msg="allAreas">All available areas</option>
+          </select></label>
+      </div>
+      <p id="fetch-readiness" role="status"></p>
+      <div id="last-coverage" role="status" aria-atomic="true" hidden>
+        <h3 data-msg="selectedAreaAudio">Saved name audio in the selected area</h3>
+        <p id="coverage-count"></p>
+        <progress id="coverage-meter" aria-labelledby="coverage-count"></progress>
+        <p id="coverage-date"></p>
+      </div>
+      <p id="coverage-status" role="status"></p>
+      <div class="actions">
+        <button id="fetch-names" data-tip="fetchTip" type="button" disabled data-msg="fetch">Fetch Names</button>
+        <button id="check-coverage" data-tip="coverageTip" type="button" disabled data-msg="check">Check Coverage</button>
+        <button id="pause-fetch" data-tip="pauseTip" type="button" disabled hidden data-msg="pause">Pause Fetch</button>
+        <button id="stop-fetch" type="button" disabled hidden data-tip="stopTip" data-msg="stop">Stop Fetch</button>
+      </div>
+      <p id="npc-check-hint" class="help" data-msg="npcCheckHint" hidden>Check Coverage to see which NPC dialogues are ready.</p>
+      <div id="fetch-activity" role="region" aria-labelledby="fetch-activity-heading" aria-describedby="fetch-status" tabindex="-1">
+        <h3 id="fetch-activity-heading" data-msg="fetchItem">Fetch status</h3>
+        <p id="fetch-status" role="status" data-msg="refreshing">Refreshing status…</p>
+        <p id="fetch-remaining" role="status"></p>
+        <p id="fetch-reload" role="status"></p>
+        <div id="fetch-timing" hidden>
+          <p id="fetch-time-summary"></p>
+          <details id="fetch-history" hidden>
+            <summary id="fetch-history-heading"></summary>
+            <ol id="fetch-history-list"></ol>
+          </details>
+        </div>
+        <label for="fetch-progress" id="fetch-progress-label" data-msg="currentNameProgress" hidden>Current name recording</label>
+        <progress id="fetch-progress" max="100" hidden></progress>
+      </div>
+      <div id="dialogue-coverage" role="group" aria-labelledby="dialogue-coverage-heading" hidden>
+        <h3 id="dialogue-coverage-heading" data-msg="dialogueCoverage">Dialogue coverage</h3>
+        <div class="coverage-row" id="dialogue-npc" hidden>
+          <label id="dialogue-npc-label" for="dialogue-npc-meter"></label><span id="dialogue-npc-count"></span>
+          <progress id="dialogue-npc-meter" aria-describedby="dialogue-npc-count"></progress>
+        </div>
+        <div class="coverage-row" id="dialogue-zone" hidden>
+          <label id="dialogue-zone-label" for="dialogue-zone-meter"></label><span id="dialogue-zone-count"></span>
+          <progress id="dialogue-zone-meter" aria-describedby="dialogue-zone-count"></progress>
+        </div>
+        <div class="coverage-row" id="dialogue-overall" hidden>
+          <label id="dialogue-overall-label" for="dialogue-overall-meter"></label><span id="dialogue-overall-count"></span>
+          <progress id="dialogue-overall-meter" aria-describedby="dialogue-overall-count"></progress>
+        </div>
+        <details id="zone-npcs" open hidden>
+          <summary id="zone-npcs-heading"></summary>
+          <p id="zone-npc-empty" data-msg="noZoneNpcs" hidden>No eligible NPC dialogues in this zone.</p>
+          <div id="zone-npc-scroll" role="region" aria-labelledby="zone-npcs-heading" tabindex="0">
+            <ul id="zone-npc-list"></ul>
+          </div>
+        </details>
+      </div>
+      <div id="saved-recordings" aria-labelledby="saved-recordings-heading">
+        <div class="section-title"><h2 id="saved-recordings-heading" tabindex="-1" data-msg="deskReviewTitle">Saved recordings</h2><span class="workspace-count" id="saved-recording-count" hidden></span></div>
+        <details id="recording-review" hidden>
+          <summary id="review-open" data-msg="deskReviewOpen">Review saved recordings</summary>
+          <div id="review-details">
+            <p id="review-scope"></p>
+            <div id="review-items" hidden>
+              <label for="review-choice" data-msg="deskReviewChoice">Choose a recording</label>
+              <select id="review-choice"></select>
+              <div class="actions">
+                <button id="review-play" type="button" hidden disabled data-msg="deskPlayRecording">Play recording</button>
+                <button id="review-play-context" type="button" hidden disabled data-msg="deskPlayContext">Play in context</button>
+                <button id="review-replace" type="button" disabled data-msg="deskReviewReplace">Replace this recording…</button>
+              </div>
+              <audio id="review-player" controls preload="none" hidden></audio>
+              <p id="review-readiness" class="help"></p>
+            </div>
+            <p id="review-status" role="status"></p>
+            <p id="review-job" role="status"></p>
+            <div class="actions">
+              <button id="review-previous" type="button" hidden data-msg="deskReviewPrevious">Previous page</button>
+              <button id="review-next" type="button" hidden data-msg="deskReviewNext">Next page</button>
+              <button id="review-reload" type="button" hidden data-msg="deskReviewReload">Reload list</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+    </div>
+    <details id="connection-settings">
+      <summary data-msg="speechSettings">Speech settings</summary>
+    <form id="setup-form">
+      <div class="fields">
+        <label><span id="provider-label" data-msg="provider">Speech provider</span><select id="engine" aria-labelledby="provider-label" required></select></label>
+      </div>
+      <p id="provider-help" class="help" hidden></p>
+      <div class="fields" id="provider-fields">
+        <label data-provider-field><span id="credential-label" data-msg="apiKey">API key</span>
+          <input name="api_key" type="password" autocomplete="off" spellcheck="false" aria-describedby="credential-status">
+          <small id="credential-status"></small>
+        </label>
+        <label data-provider-field><span data-msg="engineModel">Speech model or engine</span> <input name="model"></label>
+        <label data-provider-field><span data-msg="region">Region</span> <input name="region"></label>
+        <label data-provider-field><span data-msg="quotaProject">Quota project ID</span> <input name="quota_project"></label>
+        <label data-provider-field><span data-msg="awsProfile">AWS profile</span> <input name="aws_profile"></label>
+        <label data-provider-field><span data-msg="personalProviderName">Connection name</span> <input name="label" maxlength="60"></label>
+        <label data-provider-field><span data-msg="sshHost">SSH destination</span> <input name="ssh_host" placeholder="user@host"></label>
+        <label data-provider-field><span data-msg="sshPort">SSH port</span> <input name="ssh_port" inputmode="numeric"></label>
+        <label data-provider-field><span data-msg="ttsAddress">Remote TTS address</span> <input name="remote_host"></label>
+        <label data-provider-field><span data-msg="ttsPort">Remote TTS port</span> <input name="remote_port" inputmode="numeric"></label>
+        <label data-provider-field><span data-msg="sshKey">Private key file path (optional)</span> <input name="ssh_key"></label>
+      </div>
+      <details id="voice-settings" hidden>
+        <summary data-msg="voiceMappings">Provider voice mappings</summary>
+        <label><span data-msg="voiceMapping">NPC ID and matching provider voice ID</span>
+          <textarea name="npc_voices" rows="3" placeholder="NPC ID = provider voice ID" data-placeholder-msg="voiceMappingExample"></textarea>
+        </label>
+      </details>
+      <div class="actions">
+        <button id="save" type="submit" data-msg="save">Save Fetch Settings</button>
+        <button id="test" type="button" data-msg="test">Test Saved Connection</button>
+        <button id="remove-connection" type="button" hidden data-msg="removePersonalProvider">Remove connection</button>
+      </div>
+      <p id="setup-status" role="status"></p>
+    </form>
+    </details>
+    <details id="card-storage">
+      <summary data-msg="storageTitle">Name card storage</summary>
+      <form id="storage-form">
+        <label class="toggle"><input type="checkbox" id="advanced-storage" aria-controls="storage-medium">
+          <span data-msg="advancedNetwork">Show advanced network storage</span></label>
+        <label><span data-msg="service">Storage location</span><select id="storage-medium"></select></label>
+        <label id="server-row" hidden><span data-msg="serverShare">Server and shared folder</span>
+          <input id="storage-server" placeholder="server/share" spellcheck="false"></label>
+        <div class="actions"><button id="storage-connect" type="button" data-msg="connect">Connect…</button></div>
+        <label><span data-msg="folder">Folder</span><input id="storage-path" required spellcheck="false" dir="auto"></label>
+        <div class="actions"><button id="storage-browse" type="button" data-msg="browse">Choose folder…</button></div>
+        <label class="toggle" id="lan-row"><input type="checkbox" id="lan-only" checked>
+          <span data-msg="lanOnly">Accessible only on my local network</span></label>
+        <label class="toggle" id="nas-row" hidden><input type="checkbox" id="storage-nas">
+          <span data-msg="onNas">Stored on a NAS</span></label>
+        <label class="toggle" id="route-row" hidden><input type="checkbox" id="via-tailscale">
+          <span data-msg="viaTailscale">Access over Tailscale</span></label>
+        <label class="toggle" id="offline-row" hidden><input type="checkbox" id="cache-offline" aria-describedby="offline-help">
+          <span data-msg="cacheOffline">Keep a copy of name audio on this computer</span></label>
+        <p class="help" id="offline-help" data-msg="cacheOfflineHelp" hidden>Saved recordings play offline. Missing recordings use “Adventurer”.</p>
+        <p class="help" id="storage-help"></p>
+        <div class="actions"><button type="submit" data-msg="saveFolder">Use this folder</button>
+          <button id="sync-now" type="button" data-msg="syncNow" disabled>Sync now</button>
+          <button id="disconnect" type="button" data-msg="disconnect" disabled>Disconnect</button></div>
+        <p id="sync-status" role="status"></p>
+      </form>
+    </details>
+    <details id="account-settings" hidden><summary data-msg="accountNames">WoW account labels</summary>
+      <form id="account-form"><label><span data-msg="accountNames">WoW account labels</span><select id="account-list"></select></label>
+        <label><span data-msg="labelName">Display name</span><input id="account-alias" maxlength="60"></label>
+        <button type="submit" data-msg="saveLabel">Save label</button><p id="account-status" role="status"></p></form>
+    </details>
+    <details id="advanced-settings">
+      <summary data-msg="advanced">Advanced settings</summary>
+      <div class="advanced-content">
+        <h2 data-msg="catalog">Dialogue catalog</h2>
+        <p id="catalog-status" role="status" data-msg="loadingCatalog">Checking dialogue availability…</p>
+        <progress id="catalog-progress" aria-label="Dialogue verification" data-aria-msg="verifyProgress" hidden></progress>
+    <details id="catalog">
+      <summary data-msg="inputs">Prepared dialogue inputs</summary>
+      <form id="catalog-form">
+        <div class="fields">
+          <label><span data-msg="inputType">Input type</span>
+            <select name="kind">
+              <option value="plans" data-msg="catalog">Dialogue catalog</option>
+              <option value="playback" data-msg="playback">Playback collection</option>
+              <option value="returns" data-msg="returns">Saved speech returns</option>
+            </select>
+          </label>
+          <label><span data-msg="zipPath">ZIP path</span> <input name="path" required></label>
+          <label class="wide">SHA-256 <input name="sha256" pattern="[0-9a-fA-F]{64}" required></label>
+          <label class="wide" id="playback-index-field" hidden><span data-msg="indexSha">Collection index SHA-256</span>
+            <input name="input_sha256" pattern="[0-9a-fA-F]{64}" disabled>
+          </label>
+        </div>
+        <button type="submit" data-msg="import">Verify Import</button>
+        <p id="import-status" role="status"></p>
+      </form>
+    </details>
+        <h2 data-msg="storage">Audio storage</h2>
+        <label class="toggle"><input id="keep-wav" data-tip="wavTip" type="checkbox"> <span data-msg="keepWav">Keep returned WAVs</span></label>
+        <p id="preferences-status" role="status"></p>
+        <button id="refresh-status" type="button" data-msg="refresh">Refresh Status</button>
+      </div>
+    </details>
+  </main>
+  <dialog id="desktop-help" aria-labelledby="desktop-help-title">
+    <header class="help-header">
+      <h2 id="desktop-help-title" data-msg="deskHelpTitle">DMSpeaks Lite Help</h2>
+      <button id="help-close" type="button" data-msg="close">Close</button>
+    </header>
+    <div class="help-layout">
+      <nav id="help-topics" aria-label="Help topics" data-aria-msg="deskHelpTopics"></nav>
+      <article id="help-content" aria-labelledby="help-topic-heading"></article>
+    </div>
+  </dialog>
+</body>
+</html>

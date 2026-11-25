@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dmspeaks:streamed-audio-library:0.1:record",
+  "title": "DMSpeaks streamed audio library 0.1 record",
+  "description": "One UTF-8 JSON object per newline-terminated line, at most 2 MiB per line. Ordering, references and terminal counts are validated across records by the importer.",
+  "type": "object",
+  "oneOf": [
+    {"properties": {"record": {"const": "header"}, "format": {"const": "dmspeaks-streamed-audio-library"}, "version": {"const": "0.1"}}, "required": ["record", "format", "version"]},
+    {"properties": {"record": {"const": "dialogue"}, "key": {"$ref": "#/$defs/key"}, "entry": {"type": "object", "required": ["assembly"], "not": {"required": ["segments"]}}}, "required": ["record", "key", "entry"]},
+    {"properties": {"record": {"const": "segment"}, "key": {"$ref": "#/$defs/key"}, "segment": {"type": "object", "properties": {"order": {"$ref": "#/$defs/order"}, "type": {"type": "string"}, "placeholder": {"type": "string"}, "layer_id": {"type": "string"}, "track_id": {"type": "string"}}, "required": ["order", "type", "placeholder", "layer_id", "track_id"], "not": {"required": ["clips"]}}}, "required": ["record", "key", "segment"]},
+    {"properties": {"record": {"const": "clip"}, "key": {"$ref": "#/$defs/key"}, "order": {"$ref": "#/$defs/order"}, "clip": {"type": "object", "properties": {"export_status": {"const": "available"}}, "required": ["export_status"]}}, "required": ["record", "key", "order", "clip"]},
+    {"properties": {"record": {"const": "end"}, "dialogues": {"type": "integer", "minimum": 1}, "clips": {"type": "integer", "minimum": 0}}, "required": ["record", "dialogues", "clips"]}
+  ],
+  "$defs": {"key": {"type": "string", "minLength": 1, "maxLength": 4096}, "order": {"type": "integer", "minimum": 1}}
+}

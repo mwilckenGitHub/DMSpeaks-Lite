@@ -1,0 +1,28 @@
+{
+  "archive": "f33ddec298d2d04b2aa26c2b200903b152087caa4104110cf901ba23343e717c",
+  "icon_sha256": "d85a60636c4382db1fe35472f86b36ea2a70d286681757ee07c2ce3c33fc5c37",
+  "kit_files": {
+    "DMSpeaks Lite - WOW Setup.exe": {
+      "bytes": 1167013045,
+      "sha256": "4e9e35a076c5443574af95d688e9f6f16b15722dc6d6fb4ebc014fca7f6752d2"
+    },
+    "DMSpeaks Uninstall Recovery.exe": {
+      "bytes": 16489056,
+      "sha256": "c4f245d17a8aceb6e8ef88822743a3daa725c7a4dd399cb784b6cb5ad570d544"
+    },
+    "DMSpeaks-WoW.zip": {
+      "bytes": 2032161021,
+      "sha256": "f33ddec298d2d04b2aa26c2b200903b152087caa4104110cf901ba23343e717c"
+    },
+    "Read Me.txt": {
+      "bytes": 8492,
+      "sha256": "afca1bbd825fbc8e62678a67e8836254083b0b58f8fed08b50a43387debe88b1"
+    }
+  },
+  "maintenance_sha256": "e3a9481e1871a34cf0796f7b049ca844cd759c36303dd9970d21b2e9a84209b3",
+  "prior_setup": "3db927d68f2ca71f20eac59d8cd9b150dd675b8596ca6385ff04de9405f06760",
+  "revision": "fetch-decoder",
+  "runtime_build": "220cddd80779c060d048352df32dba7fadc8513d672d6973e51bfbcd207c8c0e",
+  "setup_id": "6cfd18e97826c968690e284f3829db81aadce957a8426a43c4534bec3510e8ea",
+  "version": "0.1.0-beta.12"
+}

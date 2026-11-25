@@ -1,0 +1,14 @@
+{
+  "full_repair_sha256": "8cff99cad16c255be31bd98b4ecac84a632c0c208fdbf503992479031fcb7684",
+  "game_archive": "f33ddec298d2d04b2aa26c2b200903b152087caa4104110cf901ba23343e717c",
+  "installed_media_copies": 1,
+  "maintenance": "e3a9481e1871a34cf0796f7b049ca844cd759c36303dd9970d21b2e9a84209b3",
+  "prefix_sha256": "5ede93a41b18c098ff021f9a282255a15cff3cd6af35911a9acdfcc888cede4f",
+  "recover": "c4f245d17a8aceb6e8ef88822743a3daa725c7a4dd399cb784b6cb5ad570d544",
+  "runtime_files": 4265,
+  "same_recovery_wizard": true,
+  "setup": "4e9e35a076c5443574af95d688e9f6f16b15722dc6d6fb4ebc014fca7f6752d2",
+  "source_files": 276,
+  "stock_file_hardlink": true,
+  "stock_oggs_identical": 49537
+}

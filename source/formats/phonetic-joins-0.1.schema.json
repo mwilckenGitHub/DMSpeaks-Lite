@@ -1,0 +1,46 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"DMSpeaks experimental complete-clip alignment sidecar",
+  "description":"Generic alignment evidence and authored joins. Complete pronunciations stay in separate audio files; overlap is a mixer placement. This is not an installed Spoken runtime contract or a guarantee of acoustic quality.",
+  "type":"object",
+  "required":["format","version","sample_rate","context","audio","arrangements"],
+  "properties":{
+    "format":{"const":"dmspeaks-phonetic-joins"},
+    "version":{"const":"0.1"},
+    "sample_rate":{"type":"integer","minimum":8000},
+    "context":{"type":"object","required":["language","accent","voice_id"],"properties":{
+      "language":{"type":["string","null"]},"accent":{"type":["string","null"]},"voice_id":{"type":["string","null"]}
+    }},
+    "audio":{"type":"array","items":{
+      "type":"object","required":["id","path","sha256","sample_count","guides"],
+      "properties":{
+        "id":{"type":"string","minLength":1},"path":{"type":"string","minLength":1},
+        "sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "sample_count":{"type":"integer","minimum":1},
+        "guides":{"$ref":"clip-snap-points-0.1.schema.json"}
+      }
+    }},
+    "arrangements":{"type":"array","items":{
+      "type":"object","required":["id","placements","review_required"],
+      "properties":{
+        "id":{"type":"string"},"review_required":{"type":"boolean"},
+        "placements":{"type":"array","items":{
+          "type":"object","required":["audio_id","track_id","start_sample","fade_in_samples","fade_out_samples"],
+          "properties":{
+            "audio_id":{"type":"string"},"track_id":{"type":"string"},
+            "start_sample":{"type":"integer","minimum":0},
+            "fade_in_samples":{"type":"integer","minimum":0},"fade_out_samples":{"type":"integer","minimum":0}
+          }
+        }},
+        "joins":{"type":"array","items":{
+          "type":"object","required":["left_audio_id","right_audio_id","left_guide_id","right_guide_id","offset_samples","overlap_mode"],
+          "properties":{
+            "left_audio_id":{"type":"string"},"right_audio_id":{"type":"string"},
+            "left_guide_id":{"type":"string"},"right_guide_id":{"type":"string"},
+            "offset_samples":{"type":"integer"},"overlap_mode":{"const":"mix"}
+          }
+        }}
+      }
+    }}
+  }
+}

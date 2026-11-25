@@ -1,0 +1,40 @@
+{
+  "format": "open-speech-corpus",
+  "version": "0.1",
+  "corpus_id": "welcome-example",
+  "entries": [
+    {
+      "id": "welcome",
+      "source": {
+        "text": "Hello, {$visitor}. You have {$count} messages.",
+        "format": "messageformat2-simple",
+        "locale": "en"
+      },
+      "variables": {
+        "visitor": {
+          "type": "string",
+          "label": "Visitor name",
+          "default": "Guest"
+        },
+        "count": {
+          "type": "integer",
+          "label": "Message count",
+          "default": 0
+        }
+      },
+      "speaker_ref": "narrator",
+      "metadata": {
+        "scene": "intro"
+      }
+    }
+  ],
+  "speakers": [
+    {
+      "id": "narrator",
+      "name": "Narrator",
+      "metadata": {
+        "project_specific_field": "preserved"
+      }
+    }
+  ]
+}

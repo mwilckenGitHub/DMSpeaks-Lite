@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DMSpeaks authored clip-guide relationship",
+  "description": "Position the complete retained clip so its own guide equals the target clip guide plus the signed offset. Guides resolve after source decoding and per-clip processing on the 44100 Hz frame clock. Guide estimates do not establish phoneme accuracy. after_layer_id must be null and gap/overlap sample fields zero when a guide link is active.",
+  "type": "object",
+  "required": ["target_layer_id", "target_guide_id", "own_guide_id", "offset_samples"],
+  "additionalProperties": false,
+  "properties": {
+    "target_layer_id": {"type": "string", "minLength": 1, "maxLength": 512},
+    "target_guide_id": {"$ref": "#/$defs/guide"},
+    "own_guide_id": {"$ref": "#/$defs/guide"},
+    "offset_samples": {"type": "integer", "minimum": -79380000, "maximum": 79380000}
+  },
+  "$defs": {
+    "guide": {"enum": ["clip_start", "clip_end", "provider_start", "provider_end", "returned_generation_start", "returned_generation_end", "returned_alignment_start", "returned_alignment_end", "leader", "decay"]}
+  }
+}
