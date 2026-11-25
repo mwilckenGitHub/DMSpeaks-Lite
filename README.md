@@ -2,22 +2,25 @@
 
 DMSpeaks Lite prepares recordings of your character’s name for NPC dialogue in World of Warcraft Forever. The Windows companion fetches recordings. The add-on plays them in the game.
 
-## Windows beta 12 decoder update
+## Windows Beta 12 name audio update
 
-This download updates **an existing Windows x64 installation of the Beta 12 Northshire Fetch build**. It fixes a Windows audio decoder issue that could leave Northshire at 14 of 16 dialogues ready.
+[Download the Windows x64 name audio update](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Name-Audio-Update-Windows-x64.zip)
 
-[Download the Northshire decoder update for Windows x64](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Northshire-Decoder-Update-Windows-x64.zip)
+This update requires an existing **Beta 12 Northshire Fetch** or **Beta 12 Fetch Decoder** installation. It includes the earlier Northshire decoder fix.
 
-1. Pause any active fetch and close Lite.
-2. Right-click the downloaded ZIP and choose **Extract All**.
-3. Open the extracted folder and double-click **Update DMSpeaks Lite.cmd**. The updater checks that your installed build is compatible.
-4. Open Lite, select your character and use **Check Coverage**. If recordings are missing, choose **Start Fetch**.
+During a hosted name fetch, Lite can send more of the NPC’s sentence around the character’s name. It keeps the leading word and name together when the dialogue calls for it. Before saving the recording, Lite checks for audible traces of “Adventurer.” **Start Fetch** can retry a rejected take automatically. For new recordings, Lite saves the start and stop positions of the cut so they stay available when you back up the recording.
 
-SHA-256 for the ZIP is `cbd2cd2107ac656a319397fd98b412be728a691db2af1d2ddd09cca8d4d1e80e`.
+1. Pause any active fetch, wait for it to pause, and close Lite.
+2. Extract the downloaded ZIP and run **Update DMSpeaks Lite.cmd**.
+3. Reopen Lite and use **Start Fetch** for new recordings. To replace a recording you already have, open **Review saved recordings** and choose **Replace this recording**.
+
+The download’s SHA-256 is `529860e968c2f2eee6fa621689cd4ecd4a692e11aaafea5f51d17eff4d260bf7`.
+
+The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Northshire-Decoder-Update-Windows-x64.zip) is also available.
 
 ## First-time installation
 
-The full Windows installer and its matching voice archive are pending public release. [GitHub Releases](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases)
+This download updates an installed copy of Lite. A full installer for new players is pending. You can get the original Spoken add-on and voice packs from [Spoken’s publisher](https://www.curseforge.com/wow/addons/spoken).
 
 ## Sync a new character
 
