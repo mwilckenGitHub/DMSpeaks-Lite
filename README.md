@@ -30,4 +30,6 @@ On first login, choose **Reload UI** in the add-on prompt, or type `/reload` in 
 
 ## License
 
-DMSpeaks contributors license their original code and documentation under the MIT License. The project’s notice explains how that license applies to software, voice packs, and recordings made with DMSpeaks. [License](LICENSE) · [Third-party material](THIRD_PARTY.md)
+The official Lite distribution is for fetching player-name audio for use in World of Warcraft. Other uses of the official package require prior written permission. [End-User License Agreement](EULA.md)
+
+Source code released under the MIT License and third-party material remain subject to their respective terms. [MIT License](LICENSE) · [Third-party material](THIRD_PARTY.md)
