@@ -1,0 +1,28 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"DMSpeaks experimental non-destructive clip guides",
+  "description":"Current editable word labels, retained returned timestamps and measured activity candidates are distinct. Returned does not mean acoustically verified. All positions are local rendered PCM frames, never codec tokens or milliseconds.",
+  "type":"object",
+  "required":["format","version","sample_rate","sample_count","analysis_pcm_sha256","analysis_sample_format","points"],
+  "properties":{
+    "format":{"const":"dmspeaks-clip-snap-points"},
+    "version":{"const":"0.1"},
+    "sample_rate":{"type":"integer","minimum":8000},
+    "sample_count":{"type":"integer","minimum":0},
+    "source_audio_sha256":{"type":["string","null"]},
+    "analysis_pcm_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "analysis_sample_format":{"const":"float32le"},
+    "points":{"type":"array","minItems":2,"items":{
+      "type":"object","required":["id","kind","side","sample","label"],
+      "properties":{
+        "id":{"type":"string","minLength":1},
+        "kind":{"enum":["clip","provider","returned","activity"]},
+        "side":{"enum":["start","end"]},
+        "sample":{"type":"integer","minimum":0},
+        "label":{"type":"string"},
+        "review_required":{"type":"boolean"},
+        "phoneme_boundary_claimed":{"const":false}
+      }
+    }}
+  }
+}

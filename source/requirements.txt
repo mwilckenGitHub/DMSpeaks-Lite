@@ -1,0 +1,9 @@
+cryptography>=42
+jsonschema>=4.20
+soundfile>=0.13
+numpy>=1.26
+msgpack>=1.1
+# FFmpeg and FFprobe must be on PATH.
+# Fresh audio requires the configured PocketSphinx CLI, acoustic model and CMU dictionary.
+boto3==1.44.5
+# Self-hosted Fish over SSH requires OpenSSH.

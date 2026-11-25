@@ -1,0 +1,17 @@
+* text=auto
+*.py text eol=lf
+*.lua text eol=lf
+*.nsi text eol=lf
+*.nsh text eol=lf
+*.toc text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.ini text eol=lf
+*.txt text eol=lf
+*.zip binary
+*.gz binary
+*.png binary
+*.tga binary

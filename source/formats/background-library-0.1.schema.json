@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dmspeaks:background-library:0.1",
+  "title": "DMSpeaks independent background library draft 0.1",
+  "type": "object",
+  "required": ["format", "version", "choices"],
+  "properties": {
+    "format": {"const": "dmspeaks-background-library"},
+    "version": {"const": "0.1"},
+    "choices": {"type": "array", "items": {"$ref": "#/$defs/choice"}}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "id": {"type": "string", "minLength": 1},
+    "loop": {
+      "type": "object",
+      "required": ["version", "enabled", "start_sample", "end_sample", "span_samples"],
+      "properties": {
+        "version": {"const": "0.1"},
+        "enabled": {"type": "boolean"},
+        "start_sample": {"type": "integer", "minimum": 0},
+        "end_sample": {"type": "integer", "minimum": 1},
+        "span_samples": {"type": "integer", "minimum": 1, "maximum": 79380000}
+      }
+    },
+    "duck": {
+      "type": "object",
+      "required": ["version", "enabled", "reduction_db", "attack_ms", "hold_ms", "release_ms"],
+      "properties": {
+        "version": {"const": "0.1"},
+        "trigger": {"const": "scheduled_speech"},
+        "enabled": {"type": "boolean"},
+        "reduction_db": {"type": "number", "minimum": -48, "maximum": 0},
+        "attack_ms": {"type": "number", "minimum": 0, "maximum": 5000},
+        "hold_ms": {"type": "number", "minimum": 0, "maximum": 5000},
+        "release_ms": {"type": "number", "minimum": 0, "maximum": 10000}
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["id", "audio_path", "audio_sha256", "sample_count", "channels"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "audio_path": {"type": "string", "minLength": 1},
+        "audio_sha256": {"$ref": "#/$defs/hash"},
+        "sample_count": {"type": "integer", "minimum": 1, "maximum": 79380000},
+        "channels": {"enum": [1, 2]}
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id", "track_id", "asset_id", "clip_role", "kind"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "track_id": {"$ref": "#/$defs/id"},
+        "asset_id": {"$ref": "#/$defs/id"},
+        "clip_role": {"enum": ["background_music", "background_ambience"]},
+        "kind": {"const": "audio"},
+        "background_loop": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/loop"}]}
+      }
+    },
+    "track": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "ducking": {"$ref": "#/$defs/duck"}
+      }
+    },
+    "choice": {
+      "type": "object",
+      "required": ["id", "label", "role", "version", "eligible", "issue", "sources", "layers", "tracks"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "label": {"type": "string"},
+        "role": {"type": "string"},
+        "version": {"const": "0.1"},
+        "eligible": {"type": "boolean"},
+        "issue": {"type": "string"},
+        "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+        "layers": {"type": "array", "items": {"$ref": "#/$defs/layer"}},
+        "tracks": {"type": "array", "items": {"$ref": "#/$defs/track"}}
+      }
+    }
+  }
+}

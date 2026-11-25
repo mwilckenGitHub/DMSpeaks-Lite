@@ -1,0 +1,537 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Open Speech Corpus",
+  "description": "Draft schema for structured speech corpus data with variable substitution, speaker profiles, media references, alignment takes, and clip assembly.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "open-speech-corpus"
+    },
+    "version": {
+      "const": "0.1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "supported_extensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "speakers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/speaker"
+      }
+    },
+    "voice_profiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/voice_profile"
+      }
+    },
+    "media": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/media"
+      }
+    },
+    "takes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/take"
+      }
+    },
+    "clips": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/clip"
+      }
+    },
+    "required_extensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "audio_sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/audio_source"
+      }
+    },
+    "render_bindings": {
+      "type": "object",
+      "description": "Optional provider-scoped speaker reference overrides; speaker identity remains in speakers.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "corpus_id",
+    "entries"
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/variable_definition"
+          }
+        },
+        "speaker_ref": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "entry_ref": {
+          "type": "string"
+        },
+        "media_ref": {
+          "type": "string"
+        },
+        "voice_profile_ref": {
+          "type": "string"
+        },
+        "source_history": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "source"
+      ],
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "plain",
+            "ssml1.1",
+            "messageformat2",
+            "messageformat2-simple"
+          ]
+        },
+        "locale": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "format",
+        "locale"
+      ],
+      "additionalProperties": true
+    },
+    "variable_definition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "string",
+            "number",
+            "integer",
+            "boolean"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean"
+          ]
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean"
+            ]
+          }
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "semantic_role": {
+          "type": "string",
+          "description": "Optional role such as person_name for targeted generation workflows."
+        }
+      },
+      "additionalProperties": true,
+      "required": [
+        "type"
+      ]
+    },
+    "speaker": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "speaker_ref": {
+          "type": "string"
+        },
+        "entry_ref": {
+          "type": "string"
+        },
+        "media_ref": {
+          "type": "string"
+        },
+        "voice_profile_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true
+    },
+    "voice_profile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "speaker_ref": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "entry_ref": {
+          "type": "string"
+        },
+        "media_ref": {
+          "type": "string"
+        },
+        "voice_profile_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "sample_rate": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "id",
+        "uri"
+      ],
+      "additionalProperties": true
+    },
+    "take": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entry_ref": {
+          "type": "string"
+        },
+        "media_ref": {
+          "type": "string"
+        },
+        "source_revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "rendered_text": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "timing_source": {
+          "enum": [
+            "unavailable",
+            "provider",
+            "estimated_forced_alignment",
+            "manual"
+          ]
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/word"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "speaker_ref": {
+          "type": "string"
+        },
+        "voice_profile_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "entry_ref",
+        "media_ref",
+        "source_revision",
+        "rendered_text",
+        "timing_source"
+      ],
+      "additionalProperties": true
+    },
+    "word": {
+      "type": "object",
+      "properties": {
+        "word": {
+          "type": "string"
+        },
+        "start_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uncertainty_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "word",
+        "start_us",
+        "end_us",
+        "source_start",
+        "source_end"
+      ],
+      "additionalProperties": true
+    },
+    "clip": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clip_slot"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "entry_ref": {
+          "type": "string"
+        },
+        "speaker_ref": {
+          "type": "string"
+        },
+        "media_ref": {
+          "type": "string"
+        },
+        "voice_profile_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "slots",
+        "entry_ref"
+      ],
+      "additionalProperties": true
+    },
+    "clip_slot": {
+      "type": "object",
+      "properties": {
+        "slot_order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kind": {
+          "enum": [
+            "fixed",
+            "variable"
+          ]
+        },
+        "variable_ref": {
+          "type": "string"
+        },
+        "media_ref": {
+          "type": "string"
+        },
+        "missing_policy": {
+          "enum": [
+            "silence",
+            "error"
+          ]
+        },
+        "silence_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "slot_order",
+        "kind"
+      ],
+      "additionalProperties": true
+    },
+    "audio_source": {
+      "type": "object",
+      "description": "Reference audio, transcript, source identity and provenance. URI may be relative, local or HTTPS; no credentials.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "transcript": {
+          "type": "string"
+        },
+        "source_metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "audio_metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "voice_profile_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parent_reference_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "uri"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

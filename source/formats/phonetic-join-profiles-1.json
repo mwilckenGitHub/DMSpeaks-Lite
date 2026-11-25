@@ -1,0 +1,108 @@
+{
+  "format": "dmspeaks-phonetic-join-profiles-1",
+  "profiles": [
+    {
+      "id": "en-us-1",
+      "language": "en",
+      "transitions": {
+        "frication frication": "continuous_frication_possible",
+        "closure closure": "shared_closure_possible",
+        "resonance resonance": "continuous_voicing_possible",
+        "vowel nasal": "nasal_resonance_transition",
+        "nasal vowel": "nasal_resonance_transition",
+        "nasal closure": "nasal_release_into_closure",
+        "frication closure": "closure_can_interrupt_frication",
+        "resonance closure": "closure_can_interrupt_resonance",
+        "frication resonance": "frication_to_resonance",
+        "aspiration resonance": "breath_to_resonance"
+      },
+      "inventories": {
+        "arpabet": {
+          "vowel": ["AA", "AE", "AH", "AO", "AW", "AY", "EH", "ER", "EY", "IH", "IY", "OW", "OY", "UH", "UW"],
+          "stop": ["B", "D", "G", "K", "P", "T"],
+          "affricate": ["CH", "JH"],
+          "sibilant": ["S", "SH", "Z", "ZH"],
+          "fricative": ["F", "V", "TH", "DH"],
+          "aspirate": ["HH"],
+          "nasal": ["M", "N", "NG"],
+          "liquid": ["L", "R"],
+          "glide": ["W", "Y"]
+        },
+        "ipa": {
+          "vowel": ["ɑ", "æ", "ʌ", "ə", "ɔ", "aʊ", "aɪ", "ɛ", "ɝ", "ɚ", "eɪ", "ɪ", "i", "oʊ", "ɔɪ", "ʊ", "u"],
+          "stop": ["b", "d", "ɡ", "g", "k", "p", "t", "ʔ"],
+          "affricate": ["tʃ", "dʒ", "t͡ʃ", "d͡ʒ"],
+          "sibilant": ["s", "ʃ", "z", "ʒ"],
+          "fricative": ["f", "v", "θ", "ð"],
+          "aspirate": ["h", "ɦ"],
+          "nasal": ["m", "n", "ŋ"],
+          "liquid": ["l", "ɹ", "ɫ"],
+          "glide": ["w", "j"],
+          "tap": ["ɾ"]
+        }
+      },
+      "groups": {
+        "vowel": {
+          "manner": "vowel",
+          "acoustic_family": "resonance",
+          "onset": "voicing and vowel resonance onset",
+          "release": "vowel resonance transition or decay"
+        },
+        "stop": {
+          "manner": "stop",
+          "acoustic_family": "closure",
+          "onset": "closure before release",
+          "release": "release and aspiration when present"
+        },
+        "affricate": {
+          "manner": "affricate",
+          "acoustic_family": "frication",
+          "onset": "closure before noisy release",
+          "release": "frication through its transition or decay"
+        },
+        "sibilant": {
+          "manner": "sibilant fricative",
+          "acoustic_family": "frication",
+          "onset": "onset of concentrated high-frequency friction",
+          "release": "change or decay in the hiss"
+        },
+        "fricative": {
+          "manner": "non-sibilant fricative",
+          "acoustic_family": "frication",
+          "onset": "onset of friction, with or without voicing",
+          "release": "friction decay, preserving any voicing"
+        },
+        "aspirate": {
+          "manner": "aspirate",
+          "acoustic_family": "aspiration",
+          "onset": "breath noise leading into the vowel",
+          "release": "breath noise giving way to vowel resonance"
+        },
+        "nasal": {
+          "manner": "nasal",
+          "acoustic_family": "resonance",
+          "onset": "nasal resonance and any lead-in nasalization",
+          "release": "nasal murmur and transition out of it"
+        },
+        "liquid": {
+          "manner": "liquid approximant",
+          "acoustic_family": "resonance",
+          "onset": "change in resonances into the liquid",
+          "release": "change in resonances away from the liquid"
+        },
+        "glide": {
+          "manner": "glide approximant",
+          "acoustic_family": "resonance",
+          "onset": "initial movement of the vowel-like resonances",
+          "release": "continuous change into the neighboring sound"
+        },
+        "tap": {
+          "manner": "tap",
+          "acoustic_family": "closure",
+          "onset": "brief tongue contact",
+          "release": "return to resonance after the contact"
+        }
+      }
+    }
+  ]
+}

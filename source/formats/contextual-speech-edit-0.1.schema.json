@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dmspeaks:contextual-speech-edit-request:0.1",
+  "title": "Contextual speech edit request \u2014 DMSpeaks experimental draft",
+  "description": "Provider-neutral request draft, not an established industry standard. Adapters must negotiate capabilities. A replacement candidate array is not spoken text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "operation",
+    "source",
+    "slots",
+    "policy"
+  ],
+  "properties": {
+    "format": {
+      "const": "dmspeaks.contextual_speech_edit"
+    },
+    "version": {
+      "const": "0.1"
+    },
+    "operation": {
+      "const": "replace_spans"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "audio_uri",
+        "transcript",
+        "sample_rate",
+        "sample_count",
+        "speaker_id"
+      ],
+      "properties": {
+        "audio_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transcript": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_rate": {
+          "type": "integer",
+          "minimum": 8000
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "speaker_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Optional immutable source-file digest; adapters verify before generating."
+        }
+      }
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slot_id",
+          "variable_id",
+          "source_start_sample",
+          "source_end_sample",
+          "replacements",
+          "source_char_start",
+          "source_char_end"
+        ],
+        "properties": {
+          "slot_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variable_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "original_delimiter": {
+            "type": "string"
+          },
+          "source_start_sample": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_end_sample": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "replacements": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value_id",
+                "text"
+              ],
+              "properties": {
+                "value_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "text": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "duration_hint_samples": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "maxItems": 64
+          },
+          "source_char_start": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Unicode code point offset in source transcript, inclusive."
+          },
+          "source_char_end": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Unicode code point offset in source transcript, exclusive."
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_contextual_infilling",
+        "allow_duration_change",
+        "missing_replacement",
+        "preserve_original_assets"
+      ],
+      "properties": {
+        "context_encoding": {
+          "enum": ["global_codec", "independent_crops_experimental"],
+          "description": "Optional explicit encoder mode. Independent crops are experimental and require provider capability advertisement. Source delivery samples are separate from codec padding."
+        },
+        "require_contextual_infilling": {
+          "const": true
+        },
+        "allow_duration_change": {
+          "type": "boolean"
+        },
+        "missing_replacement": {
+          "enum": [
+            "silence",
+            "skip",
+            "error"
+          ]
+        },
+        "preserve_original_assets": {
+          "const": true
+        },
+        "performance_targets": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "voice_identity",
+              "emotion",
+              "cadence",
+              "intonation",
+              "loudness"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

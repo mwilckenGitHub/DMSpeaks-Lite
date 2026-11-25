@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: DMSpeaks Lite - WOW
+## Version: 0.1.0-beta.12
+## IconTexture: Interface\AddOns\DMSpeaksLite\Icons\dmspeaks-mark.tga
+## Notes: Personalizes NPC dialogue for your character's name, race, class, and gender. Requires Spoken.
+## SavedVariables: DMSpeaksLiteSettings
+## SavedVariablesPerCharacter: DMSpeaksLiteSyncPromptSeen
+## OptionalDeps: Spoken, DMSpeaksLiteStatus
+## Group: DMSpeaksLite
+## X-Part-Of: DMSpeaksLite
+Status.lua
+LocaleData.lua
+Settings.lua

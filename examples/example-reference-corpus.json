@@ -1,0 +1,69 @@
+{
+  "format": "open-speech-corpus",
+  "version": "0.1",
+  "corpus_id": "generic-reference-example",
+  "entries": [
+    {
+      "id": "welcome",
+      "speaker_ref": "guide",
+      "source": {
+        "text": "Welcome, {$visitor}. You have {$count} messages.",
+        "format": "messageformat2-simple",
+        "locale": "en"
+      },
+      "variables": {
+        "visitor": {
+          "type": "string",
+          "label": "Visitor",
+          "semantic_role": "person_name"
+        },
+        "count": {
+          "type": "integer",
+          "label": "Message count",
+          "default": 0
+        }
+      },
+      "metadata": {
+        "scene": "arrival",
+        "application_specific": {
+          "retain": true
+        }
+      }
+    }
+  ],
+  "speakers": [
+    {
+      "id": "guide",
+      "name": "Guide",
+      "voice_profile_ref": "guide-voice-v1",
+      "metadata": {
+        "role": "guide",
+        "performance_notes": "warm and clear"
+      }
+    }
+  ],
+  "voice_profiles": [
+    {
+      "id": "guide-voice-v1",
+      "metadata": {
+        "description": "Project-specific voice identity; use a compatible reference or provider voice."
+      }
+    }
+  ],
+  "audio_sources": [
+    {
+      "id": "guide-session-01",
+      "name": "Guide reference recording",
+      "uri": "References/guide-session-01.ogg",
+      "transcript": "A supplied reference transcript belongs here.",
+      "voice_profile_refs": [
+        "guide-voice-v1"
+      ],
+      "source_metadata": {
+        "origin": "user-supplied recording",
+        "locale": "en",
+        "usage_terms": "Record the actual permitted usage here."
+      }
+    }
+  ]
+}

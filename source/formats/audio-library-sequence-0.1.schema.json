@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DMSpeaks exported dialogue clip sequence (draft 0.1)",
+  "description": "One dialogue entry in a voxweave-audio-library manifest. Sample counts are frames per channel. Graph references and overlap constraints require semantic validation by the resolver.",
+  "type": "object",
+  "required": ["assembly", "segments"],
+  "properties": {
+    "assembly": {
+      "type": "object",
+      "required": ["format", "version", "clock_sample_rate", "completion_rule", "duration_basis"],
+      "properties": {
+        "format": {"const": "dmspeaks-clip-sequence"},
+        "version": {"const": "0.1"},
+        "clock_sample_rate": {"type": "integer", "minimum": 8000, "maximum": 192000},
+        "completion_rule": {"const": "after_previous_clip"},
+        "duration_basis": {"const": "decoded selected delivery audio"}
+      }
+    },
+    "segments": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["order", "type", "placeholder", "layer_id", "track_id", "after_layer_id", "missing_policy", "fallback_silence_ms", "clips"],
+        "properties": {
+          "order": {"type": "integer", "minimum": 1},
+          "type": {"type": "string", "minLength": 1},
+          "placeholder": {"type": "string"},
+          "literal_suffix": {"type": "string", "description": "Literal ending included in each variable recording, but excluded from player_value lookup. Missing variables silence the complete lexical unit."},
+          "segment_model": {"type": "string", "description": "Source lexical partition identity; older incompatible extracted pieces are not interchangeable."},
+          "performance_model": {"type":"string","description":"Source-aware performance cue partition identity. Narrator-only variables are absent from the NPC sequence."},
+          "layer_id": {"type": "string", "minLength": 1},
+          "track_id": {"type": "string", "minLength": 1},
+          "after_layer_id": {"type": ["string", "null"]},
+          "anchor_start_sample": {"$ref": "#/$defs/sample_position"},
+          "gap_samples": {"$ref": "#/$defs/sample_position"},
+          "overlap_samples": {"$ref": "#/$defs/sample_position"},
+          "fade_in_samples": {"$ref": "#/$defs/sample_position"},
+          "fade_out_samples": {"$ref": "#/$defs/sample_position"},
+          "missing_policy": {"enum": ["error", "silence", "skip"]},
+          "fallback_silence_ms": {"type": "integer", "minimum": 0},
+          "value_match": {"enum": ["unicode_nfc", "unicode_nfc_casefold"]},
+          "clips": {
+            "type": "array", "items": {
+              "type": "object",
+              "required": ["clip_id", "clip_variant", "audio_path", "audio_sample_count", "audio_sample_rate", "audio_seconds", "audio_channels", "audio_sha256", "export_status"],
+              "properties": {
+                "clip_id": {"type": "string", "minLength": 1},
+                "clip_variant": {"type": "string"},
+                "clip_reference_id": {"type": "string"},
+                "clip_generation_key": {"type": "string"},
+                "audio_path": {"type": "string", "minLength": 1},
+                "audio_sample_count": {"type": "integer", "minimum": 1},
+                "audio_sample_rate": {"type": "integer", "minimum": 8000, "maximum": 192000},
+                "audio_channels": {"type": "integer", "minimum": 1},
+                "audio_seconds": {"type": "number", "exclusiveMinimum": 0},
+                "audio_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "export_status": {"const": "available"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {"sample_position": {"type": "integer", "minimum": 0}}
+}
