@@ -24,6 +24,8 @@ def quest_wording_key(manifest):
 
 
 def source_key(row):
+    if "catalog_source_key" in row:
+        return row["catalog_source_key"]
     if row.get("quest_variant"):
         identity = (*dialogue_source_tuple(row), row["source_text_sha256"])
         key = sha256(json.dumps(identity, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()

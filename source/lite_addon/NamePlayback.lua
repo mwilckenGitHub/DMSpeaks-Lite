@@ -3,10 +3,6 @@ local addonName, addon = ...
 local core = SpokenEnv
 local quests = VoiceOver
 
-local function SupportedSpokenVersion(version)
-    return version == "3.8.7" or version == "3.9.0" or version == "3.10.0" or version == "3.10.1" or version == "3.13.0"
-end
-
 local function HasMethods(owner, ...)
     if type(owner) ~= "table" then return false end
     for index = 1, select("#", ...) do
@@ -17,10 +13,9 @@ local function HasMethods(owner, ...)
 end
 
 if type(core) ~= "table" or type(quests) ~= "table"
-    or not SupportedSpokenVersion(core.AddonVersion) or quests.AddonVersion ~= core.AddonVersion
     or not HasMethods(quests.DataModules, "ResolveSoundFile", "PrepareSound")
     or not HasMethods(core.SoundUtils, "TestSound", "PlaySound", "StopSound")
-    or not HasMethods(core.SoundQueue, "PauseQueue")
+    or type(core.SoundQueue) ~= "table"
     or not HasMethods(Spoken, "NotSecret", "RegisterCallback")
     or not HasMethods(C_Timer, "NewTimer") or type(GetTime) ~= "function"
     or type(addon) ~= "table" or type(addon.dialoguesByStockPath) ~= "table" then
@@ -32,6 +27,8 @@ local questVariants = addon.questVariantsByStockPath or {}
 local followupVariants = addon.followupVariantsByStockPath or {}
 local followupsByBroadcast = addon.followupVariantsByBroadcast or {}
 local standaloneVariants = addon.questVariantsWithoutStock or {}
+local stockMissingVariants = addon.questVariantsOnlyWhenStockMissing or {}
+local literalQuestFallbacks = addon.literalQuestFallbacks or {}
 local legacyNamedQuests = addon.legacyNamedQuestVariants or {}
 local legacyNamedFollowups = addon.legacyNamedFollowupVariants or {}
 local retainedStoreNames = addon.retainedStoreNames or {}
@@ -40,6 +37,7 @@ local standalone = addon.dialoguesWithoutStock or {}
 local standaloneModule = { METADATA = { AddonName = addonName, Language = "enUS" } }
 local sounds = core.SoundUtils
 local queue = core.SoundQueue
+local canPauseQueue = HasMethods(queue, "PauseQueue")
 local modules = quests.DataModules
 local resolveStock = modules.ResolveSoundFile
 local prepareStock = modules.PrepareSound
@@ -727,6 +725,8 @@ local function MissingStockEntry(clip, instead)
         if variant then return variant end
         if HasPlayerName(standalone[gendered]) then return standalone[gendered] end
         if HasPlayerName(standalone[key]) then return standalone[key] end
+        local fallback = QuestVariant(clip, stockMissingVariants[key], key)
+        if fallback then return fallback end
     end
 end
 
@@ -918,12 +918,33 @@ function modules:PrepareSound(clip)
     return found, reason
 end
 
+local function TryLiteralQuestFallback(clip, instead)
+    local route = literalQuestFallbacks[clip.fileName] or literalQuestFallbacks[instead]
+    local utils = quests.Utils
+    local language = quests.Language or Language
+    if not route or route.quest ~= clip.questID or route.event ~= clip.event
+        or not clip.unitGUID or not HasMethods(utils, "GetCreatureIDFromGUID", "GetBodyForGUID")
+        or not StandaloneEnglishVoice(language) or not EnglishCaptions(language)
+        or utils:GetCreatureIDFromGUID(clip.unitGUID) ~= route.npc
+        or (clip.npcBody or utils:GetBodyForGUID(clip.unitGUID)) ~= route.body then return false end
+    local shown = Spoken.NotSecret(clip.text)
+    if type(shown) ~= "string" or shown == "" then return false end
+    local probe = { event = clip.event, fileName = route.file }
+    if not resolveStock(modules, probe) or probe.filePath ~= route.path
+        or probe.language ~= "enUS" or type(probe.packText) ~= "string"
+        or NormalizeQuestText(shown:gsub("<snort>", " ")) ~= NormalizeQuestText(probe.packText:gsub("<snort>", " ")) then
+        return false
+    end
+    for key, value in pairs(probe) do clip[key] = value end
+    return true
+end
+
 function modules:ResolveSoundFile(clip, instead)
     RestoreStock(clip)
     local found = resolveStock(self, clip, instead)
     if not found then
         local entry = ScopedGossip(clip) or MissingStockEntry(clip, instead)
-        return PrepareStandalone(clip, entry) or found
+        return PrepareStandalone(clip, entry) or TryLiteralQuestFallback(clip, instead) or found
     end
     if not (hookEnqueue and clip.event == events.QuestFollowup) then
         PreparePlaybackSequence(clip, EntryForStockPath(clip, instead))
@@ -1118,7 +1139,13 @@ function sounds:PlaySound(clip, channel)
                 if entry.standalone or not entry.stockLength then return false end
                 return playStock(sounds, clip, channel)
             end
-            queue:PauseQueue()
+            if canPauseQueue then
+                queue:PauseQueue()
+            else
+                -- Let the queue's completion timer advance past the rejected cut.
+                state.lastPiece, state.endsAt, state.piece = true, GetTime(), nil
+                clip.handle = nil
+            end
             RestoreStock(clip)
             return false
         end
@@ -1151,7 +1178,7 @@ function sounds:PlaySound(clip, channel)
         end
         -- Spoken's stock watcher follows one handle. Follow the active piece instead.
         if state.cutTimer then state.cutTimer:Cancel() end
-        if C_Sound and C_Sound.IsPlaying and type(piece.handle) == "number"
+        if canPauseQueue and C_Sound and C_Sound.IsPlaying and type(piece.handle) == "number"
             and entry.clips[index].samples / entry.rate > 1 then
             state.cutTimer = C_Timer.NewTimer(0.5, function()
                 if playing[clip] == state and state.piece == piece then

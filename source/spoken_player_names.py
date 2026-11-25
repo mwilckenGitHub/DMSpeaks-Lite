@@ -36,7 +36,9 @@ from lite_portable_constraints import (
     ordered_area_dialogues, queue_areas,
     starting_greeting_area, validate_name,
 )
-from lite_portable_inputs import SETTING, MissingStockRecording, imported, installed, reconstructed_caption, render_inputs
+from lite_portable_inputs import (
+    SETTING, MissingStockRecording, imported, installed, installed_plans, reconstructed_caption, render_inputs,
+)
 from lite_portable_io import (cache_bytes, digest, file_hash, filesystem_path, hold, read, render_fingerprint,
                               save, stock_binding, validate_routes)
 from lite_portable_package import ADDON, ARCHIVE, disable_exported_routes, disable_installed_routes, install_names, package_names
@@ -698,7 +700,7 @@ def run(app, request, status, should_stop=None, on_progress=None, on_activity=No
     playback_snapshot = None
     quick_coverage = False
     area_overrides = {}
-    plans = plan["dialogues"]
+    plans = installed_plans(addons, plan, gender=str(values.get("gender", "")).casefold())
     if getattr(app, "store_managed", False):
         from lite_store_playback import installed_playback, playable_saved_names
         quick_coverage = not submit and request.get("quick_coverage") is True
@@ -893,7 +895,7 @@ def run(app, request, status, should_stop=None, on_progress=None, on_activity=No
                     discard_pending_return(queue, receipt)
             return
         first_install = not (addons / ADDON / (ADDON + ".toc")).is_file()
-        current = {source_key(row): row for row in plan["dialogues"]}
+        current = {source_key(row): row for row in plans}
         mismatched = {}
         from lite_paced_delivery import SETTING as PACED_SETTING,canonical,validate_projection
         from lite_paced_name import managed_name_matches
@@ -1475,7 +1477,7 @@ def run(app, request, status, should_stop=None, on_progress=None, on_activity=No
             packages = Path(scratch) / "dialogues"
             seed_cache = Path(scratch) / "references"
         elif submit:
-            carry_compatible(app, packages, plan["dialogues"], members=plan_members)
+            carry_compatible(app, packages, plans, members=plan_members)
         else:
             from lite_paced_delivery import SETTING as PACED_SETTING
             coverage_paced_state = app.store.setting(PACED_SETTING, {}) or {}

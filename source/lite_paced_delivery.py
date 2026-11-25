@@ -166,6 +166,16 @@ def projection(clock, metadata, trust, caption=None):
         caption_policy=clock['caption_policy'],delivery_native_selection_sha256=trust['native_selection_metadata_sha256'])
     if kind == 'quest' and giver_type in {'Item', 'GameObject'}:
         result['native_route']['quest_id'] = int(match[1])
+    if 'reference_spoken' in metadata:
+        reference = metadata['reference_spoken']
+        pack_path = r"SpokenQuestsAudio(?:Alliance|Horde|Shared)/generated/sounds/quests/"
+        require(kind == 'quest' and metadata['original_spoken'] is None
+                and isinstance(reference, dict) and set(reference) == {'path', 'sha256'}
+                and isinstance(reference['path'], str)
+                and re.fullmatch(pack_path + re.escape(metadata['spoken_key']) + r"\.ogg", reference['path']),
+                'A reconstructed base needs its matching signed quest reference.')
+        checksum(reference['sha256'])
+        result['reference_spoken'] = reference
     if 'verified_quest_stock_variant' in metadata:
         verified = metadata['verified_quest_stock_variant']
         require(kind == 'quest' and giver_type == 'Creature' and metadata['original_spoken'] is None

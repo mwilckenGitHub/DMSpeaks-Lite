@@ -26,9 +26,11 @@ The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitH
 
 ## First-time installation
 
-This download updates an installed copy of Lite. A full installer for new players is pending. You can get the original Spoken add-on and voice packs from [Spoken’s publisher](https://www.curseforge.com/wow/addons/spoken).
+The Beta 12 source is available here. Publication of the Lite installer and companion audio ZIP is pending redistribution clearance for the bundled material.
 
-The source supports Spoken 3.13.0 with the separately installed English 2.7.1 voice packs for the full audited name catalog. The English 2.7.3 voice packs changed 18 recordings and removed one at its earlier path. New name fetches for those 19 dialogue plans require the matching 2.7.1 recordings while the replacement audio is being measured. [Spoken voice packs](https://www.curseforge.com/wow/addons/spoken#description)
+The complete Windows kit uses **DMSpeaks Lite - WOW Setup.exe** and **DMSpeaks-WoW.zip**. Keep the two files together and run Setup. It installs the desktop companion, playback assets, and prepared name catalog.
+
+Lite connects when Spoken provides the playback functions it uses, regardless of version number. It verifies the installed English recording and caption before selecting a matching plan. [Spoken add-on and voice packs](https://www.curseforge.com/wow/addons/spoken#description)
 
 ## Sync a new character
 

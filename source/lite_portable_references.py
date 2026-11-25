@@ -418,6 +418,11 @@ def hosted_stock_reference(row, stock, scratch, members, *, decoded_original=Non
     if not reuse_decoded:
         decoded_original = scratch / "fish-original-spoken.wav"
         decode_stock(stock, signed, decoded_original)
+    if row.get("analysis_base") and row.get("reference_from_stock") and not row.get("signed_reference_parent"):
+        dialogue = references_for_stock(row, members, decoded_original)[-1]
+        if dialogue["transcript"] != transcript:
+            raise ValueError("The reconstructed playback has a different signed reference transcript.")
+        return [*voice, dialogue]
     audio = decoded_original.read_bytes()
     if reuse_decoded:
         import numpy as np

@@ -437,12 +437,138 @@ def read_skyborne_eligibility(binding, input_hash):
     return binding["rows"]
 
 
+def gendered_stock_revision(old, alternate):
+    """Identify a signed quest recording whose filename selects a player sex."""
+    original = PurePosixPath(old["stock_path"])
+    actual = alternate.get("stock_path")
+    if not old["source_id"].startswith("q:") or old.get("quest_variant") or not isinstance(actual, str):
+        return False
+    return any(actual == original.with_name(prefix + original.name).as_posix()
+               and alternate.get("sexes") == [gender]
+               and (old.get("sexes") is None or gender in old["sexes"])
+               for prefix, gender in (("m-", "male"), ("f-", "female")))
+
+
+def equivalent_gendered_wording(old, alternate, texts):
+    """Check that the new authored wording changes only the existing gender term."""
+    if (not isinstance(texts, list) or len(texts) != 2
+            or not all(isinstance(value, str) for value in texts)):
+        return False
+    previous, revised = texts
+    if (digest(previous.encode()) != old["source_text_sha256"]
+            or digest(revised.encode()) != alternate.get("source_text_sha256")):
+        return False
+    sex = alternate["sexes"][0]
+    branches = re.compile(r"\$[Gg]([^$:;]+):([^$:;]+);")
+
+    def wording(text, gender):
+        selected = branches.sub(lambda match: match[1 if gender == "male" else 2], text)
+        return " ".join(re.sub(r"\$[Bb]", " ", selected).split())
+
+    # Older single recordings may use the male form as the canonical text.
+    # The newer, explicit gender token must resolve to that wording in the male branch.
+    if branches.search(previous):
+        return all(wording(previous, gender) == wording(revised, gender) for gender in ("male", "female"))
+    return (sex == "female" and branches.search(revised) is not None
+            and wording(previous, "male") == wording(revised, "male"))
+
+
+def stock_item_giver_revision(old, row, release):
+    """Recognize the reviewed Corrupted Totems change of dialogue owner."""
+    return (
+        release == "b0a034463a891e3e21ff8181d36b73b183d3e74894d2e90a621dbdb34b8d9628"
+        and old["source_id"] == "q:79366:accept"
+        and old.get("npc_id") == 5905
+        and old.get("giver_type", "Creature") == "Creature"
+        and old["stock_sha256"] == "41b6837c6ffa10b168366f91a704e5ddfb3676029a2e16b6cef2ef419055fb6f"
+        and row.get("npc_id") == 268582
+        and row.get("giver_type") == "Item"
+        and row.get("stock_sha256") == "a4c272323f4751d058286816134a6985d610074812954e401174e4ea3554756c"
+    )
+
+
+_DEFIAS_FOLLOWUP_BASE = "SpokenQuestsAudioAlliance/generated/sounds/followup/"
+_DEFIAS_FOLLOWUP_PRIOR = _DEFIAS_FOLLOWUP_BASE + "9-human-male-standard.ogg"
+_DEFIAS_FOLLOWUP_PUBLISHER = _DEFIAS_FOLLOWUP_BASE + "9-human-male-standard-human-male-warrior.ogg"
+_DEFIAS_FOLLOWUP_LOOKUPS = {
+    "followup_lookups.lua": "89906ee1cec19e7dd36c8685e9d11bbd5c63b33db7c0f2b4bb4ca4d3535ff70b",
+    "npc_body_followup_lookups.lua": "f4f22a401caeb30c7b15044073db7988ad8c2c5d26d02ac176169d12b74a8f7c",
+    "npc_sex_followup_lookups.lua": "3a00ecbaa667d60054050ab7870bdf642f151d35f4f99cd4d6364b003feaabbc",
+    "sound_length_table.lua": "61fb2a2e19dc144920e504833661e355d4584b64919f409b204c7d5454d7b1c7",
+}
+
+
+def defias_followup_revision(old, row, release):
+    """Admit the signed filename change for the existing Defias follow-up."""
+    return (
+        release == "b0a034463a891e3e21ff8181d36b73b183d3e74894d2e90a621dbdb34b8d9628"
+        and old["source_id"] == "f:9:human-male-standard"
+        and old.get("npc_id") == 467
+        and old["stock_path"] == _DEFIAS_FOLLOWUP_PRIOR
+        and old["stock_sha256"] == "547d6653e10802118b9e85fcbaa1ae8aec6a99f4465f3c89616081daea3544f8"
+        and row.get("stock_path") == _DEFIAS_FOLLOWUP_PUBLISHER
+        and row.get("stock_sha256") == "d9741bd777e78a688178b7c0610721ae8469ae3efd1875b5a9ae74f5fe9b939f"
+        and row.get("sexes") == old.get("sexes")
+    )
+
+
+def stock_revision_rows(manifest, rows):
+    variants = manifest.get("stock_revisions", {})
+    if not variants:
+        if not isinstance(variants, dict):
+            raise ValueError("Spoken stock revisions must be grouped by dialogue source.")
+        return []
+    primary = {source_key(row): row for row in rows}
+    if not isinstance(variants, dict) or not variants.keys() <= primary.keys():
+        raise ValueError("A Spoken stock revision has no original dialogue plan.")
+
+    records = []
+    scope = ("source_id", "locale", "races", "classes",
+             "minimum_level", "npc_aliases", "quest_eligibility",
+             "quest_variant", "game_object_reference")
+    for key, alternatives in variants.items():
+        old = primary[key]
+        if old.get("native_source") or not isinstance(alternatives, list) or not alternatives:
+            raise ValueError("Spoken stock revisions require an original stock recording.")
+        digests = {old["stock_sha256"]}
+        for variant in alternatives:
+            if not isinstance(variant, dict) or variant.keys() not in (
+                    {"release", "row"}, {"release", "row", "source_texts"}):
+                raise ValueError("A Spoken stock revision needs its signed release and complete plan.")
+            release, row = variant["release"], variant["row"]
+            if (not isinstance(release, str) or not HASH.fullmatch(release) or not isinstance(row, dict)
+                    or row.get("native_source") or "catalog_source_key" in row
+                    or any(row.get(field) != old.get(field) for field in scope)):
+                raise ValueError("A Spoken stock revision changed its dialogue or character scope.")
+            if ((row.get("npc_id"), row.get("giver_type")) != (old.get("npc_id"), old.get("giver_type"))
+                    and not stock_item_giver_revision(old, row, release)):
+                raise ValueError("A Spoken stock revision changed its dialogue owner.")
+            split = gendered_stock_revision(old, row)
+            if (not split
+                    and (row.get("stock_path"), row.get("sexes")) != (old["stock_path"], old.get("sexes"))
+                    and not defias_followup_revision(old, row, release)):
+                raise ValueError("A Spoken stock revision changed its recording path or character scope.")
+            same_text = row.get("source_text_sha256") == old["source_text_sha256"]
+            if ((same_text and "source_texts" in variant)
+                    or not same_text and not (split and equivalent_gendered_wording(old, row, variant.get("source_texts")))):
+                raise ValueError("A Spoken stock revision changed its dialogue wording.")
+            stock = row.get("stock_sha256")
+            if not isinstance(stock, str) or not HASH.fullmatch(stock) or stock in digests:
+                raise ValueError("A Spoken stock revision needs a distinct recording checksum.")
+            digests.add(stock)
+            records.append((release, row))
+    return records
+
+
 def verified_rows(members, manifest, *, progress=None, should_stop=None):
     _, index = verify_release(members["signed-index.json"])
     releases = {}
+    indexes = {None: index}
     paths = set()
     by_reference = {}
     rows = manifest["dialogues"]
+    if any("catalog_source_key" in row for row in rows):
+        raise ValueError("A catalog row cannot override its dialogue identity.")
     skyborne = getattr(members, "skyborne_eligibility", {})
     if skyborne and not skyborne.keys() <= {source_key(row) for row in rows}:
         raise ValueError("A Skyborne eligibility record refers to an unknown dialogue.")
@@ -452,11 +578,14 @@ def verified_rows(members, manifest, *, progress=None, should_stop=None):
             raise ValueError("The installed name catalog has unmatched coverage records.")
         rows = [row for key, row in keyed.items() if key not in holds]
 
+    revisions = stock_revision_rows(manifest, rows)
+    records = [(None, row) for row in rows] + revisions
+
     def report_native_sources(step):
         progress({**step, "catalog_row": ordinal})
 
-    for ordinal, row in enumerate(rows):
-        import_progress(progress, should_stop, "verifying", ordinal, len(rows))
+    for ordinal, (release, row) in enumerate(records):
+        import_progress(progress, should_stop, "verifying", ordinal, len(records))
         if "signed_stock_caption" in row and (
                 not isinstance(row["signed_stock_caption"], str) or not row["signed_stock_caption"].strip()
                 or row.get("native_source") or not row.get("companion_seed") or not row.get("reference_contract")):
@@ -519,7 +648,7 @@ def verified_rows(members, manifest, *, progress=None, should_stop=None):
         if "native_source" in row:
             from lite_native_sources import verify_row
             verify_row(row, members, progress=report_native_sources if progress else None, should_stop=should_stop)
-            key=source_key(row)
+            key = (release, source_key(row))
             if key in paths:raise ValueError("The native source has a duplicate preparation identity.")
             paths.add(key)
             verify_name_slots(row)
@@ -533,27 +662,34 @@ def verified_rows(members, manifest, *, progress=None, should_stop=None):
             from lite_expanded_binding import descriptor
             descriptor(row, members)
         pack, _, relative = row["stock_path"].partition("/")
-        key = source_key(row)
+        key = (release, source_key(row))
         if (not PACK.fullmatch(pack) or not STOCK.fullmatch(relative)
                 or key in paths or row["key"] != PurePosixPath(relative).stem
                 or row["locale"] != "en-US"):
             raise ValueError("The prepared dialogue has an unsupported or duplicate stock binding.")
         paths.add(key)
-        by_reference.setdefault(row["stock_path"], []).append(row)
+        by_reference.setdefault((release, row["stock_path"]), []).append(row)
         for field, allowed in (("classes", CLASS_MASKS), ("sexes", ("male", "female"))):
             if field in row and (not isinstance(row[field], list) or not row[field]
                                  or any(not isinstance(value, str) or value not in allowed for value in row[field])
                                  or len(set(row[field])) != len(row[field])):
                 raise ValueError("The prepared dialogue has invalid character requirements.")
-        if pack not in releases:
-            signed_hash, signed = verify_release(members[f"packs/{pack}.json"])
-            revision = index["packs"][pack]
+        identity = (release, pack)
+        if identity not in releases:
+            prefix = f"spoken-releases/{release}/" if release else ""
+            if release not in indexes:
+                actual, alternate = verify_release(members[prefix + "index.json"])
+                if actual != release:
+                    raise ValueError("The alternate Spoken release index changed.")
+                indexes[release] = alternate
+            signed_hash, signed = verify_release(members[f"{prefix}packs/{pack}.json"])
+            revision = indexes[release]["packs"][pack]
             if (signed_hash, signed["rev"], signed["packId"]) != (
                     revision["manifestSha256"], revision["rev"], pack):
                 raise ValueError("The Spoken pack differs from its signed release index.")
-            releases[pack] = {file["path"]: file for file in signed["files"]}
-        signed = releases[pack].get(relative)
-        table = releases[pack].get("generated/text_table.lua")
+            releases[identity] = {file["path"]: file for file in signed["files"]}
+        signed = releases[identity].get(relative)
+        table = releases[identity].get("generated/text_table.lua")
         if (not signed or signed["sha256"] != row["stock_sha256"]
                 or not table or table["sha256"] != row["text_table_sha256"]):
             raise ValueError("A prepared dialogue differs from its signed stock release.")
@@ -581,7 +717,7 @@ def verified_rows(members, manifest, *, progress=None, should_stop=None):
     if not paths:
         raise ValueError("The verified input contains no prepared dialogues.")
     seeds = {row["companion_seed"]["manifest_sha256"]
-             for row in rows if "companion_seed" in row}
+             for _, row in records if "companion_seed" in row}
     bundled = {PurePosixPath(name).parts[1] for name in archive_names_under(members, "companions/")
                if len(PurePosixPath(name).parts) > 1}
     if not bundled <= seeds:
@@ -591,8 +727,8 @@ def verified_rows(members, manifest, *, progress=None, should_stop=None):
     if bundled:
         from lite_portable_companion import validate_bundled_companion
 
-        for ordinal, row in enumerate(rows):
-            import_progress(progress, should_stop, "playback", ordinal, len(rows))
+        for ordinal, (_, row) in enumerate(records):
+            import_progress(progress, should_stop, "playback", ordinal, len(records))
             if row.get("companion_seed", {}).get("manifest_sha256") in bundled:
                 validate_bundled_companion(row, members)
 
@@ -1149,6 +1285,11 @@ def installed(addons, row):
     if not path.is_file() or file_hash(path) != row["stock_sha256"]:
         raise ValueError("Install the matching signed Spoken recording in the selected AddOns folder.")
     pack = row["stock_path"].split("/",1)[0]
+    if row["stock_path"] == _DEFIAS_FOLLOWUP_PUBLISHER:
+        for name, checksum in _DEFIAS_FOLLOWUP_LOOKUPS.items():
+            lookup = (root / pack / "generated" / name).resolve()
+            if not lookup.is_relative_to(root) or not lookup.is_file() or file_hash(lookup) != checksum:
+                raise ValueError("Install the signed Spoken follow-up lookups for this recording.")
     table = (root / pack / "generated/text_table.lua").resolve()
     if not table.is_relative_to(root) or not table.is_file():
         raise ValueError("Install the matching signed Spoken recording and text table.")
@@ -1170,6 +1311,30 @@ def installed(addons, row):
     if assignment is None or json.loads(assignment) != signed_transcript:
         raise ValueError("The planned transcript differs from the signed stock text.")
     return path
+
+
+def installed_plans(addons, manifest, *, gender=""):
+    """Choose an exact installed recording before counting coverage or requesting speech."""
+    rows = manifest["dialogues"]
+    variants = manifest.get("stock_revisions")
+    if not variants:
+        return rows
+    selected = []
+    for row in rows:
+        key = source_key(row)
+        for variant in variants.get(key, ()):
+            alternate = variant["row"]
+            renamed = alternate["stock_path"] != row["stock_path"]
+            if renamed and alternate.get("sexes") and gender not in alternate["sexes"]:
+                continue
+            try:
+                installed(addons, alternate)
+            except (OSError, ValueError):
+                continue
+            row = {**alternate, "catalog_source_key": key} if renamed else alternate
+            break
+        selected.append(row)
+    return selected
 
 
 def stock_decode_contract(row):

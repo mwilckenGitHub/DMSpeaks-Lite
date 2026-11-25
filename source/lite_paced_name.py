@@ -57,8 +57,10 @@ def matching_source_metadata(folder, seal, row):
     if digest(raw) != seal["native_selection_metadata_sha256"]:
         raise ValueError("The sealed playback source changed.")
     metadata = json.loads(raw)
-    original = metadata.get("original_spoken") or {}
+    original = metadata.get("original_spoken") or metadata.get("reference_spoken") or {}
     if row.get("stock_path") and original.get("path") and row["stock_path"] != original["path"]:
+        return None
+    if row.get("stock_sha256") and original.get("sha256") and row["stock_sha256"] != original["sha256"]:
         return None
     if (row["source_id"].startswith("q:") and row.get("source_text_sha256")
             and digest(metadata["original_text"].encode()) != row["source_text_sha256"]):
@@ -102,6 +104,8 @@ def prepared_base(app,row,state=None,*,verify_audio=True,giver_types=None):
             continue
         if row.get("game_object_reference") and metadata.get("giver_type") != "GameObject":
             raise ValueError("The signed object reference needs its matching game object route.")
+        if "giver_type" in row and metadata.get("giver_type") != row["giver_type"]:
+            raise ValueError("The signed reference needs its matching quest giver type.")
         native_manifest = m['source_native_manifest_sha256']
         if metadata.get('native_manifest_sha256', native_manifest) != native_manifest:
             raise ValueError('The sealed native source identity differs from the delivery clock.')

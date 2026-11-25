@@ -1,4 +1,25 @@
 {
+  "6a1ad3cf4ec73d392431cc1d565ac3e9783866deac381ad28111fa6b07a55140": {
+    "captions": {
+      "aebf3948f2b6eeebadd9d114b8e08bba": "790cc947226a4080822e27c56e9b38016aa7145ef3293e0c6d79aa75aa1921c4"
+    },
+    "pack": "SpokenQuestsAudioGossip"
+  },
+  "d0e1a6037a2adbe78ecdf11a756678a960750c169f004cb4447e1767abcd9cce": {
+    "captions": {
+      "1425-accept": "f33ba90a5a6389d5a5980db4744dfdc3e6f999be9ebbdfc9ef324705aba4f80a",
+      "17-complete": "8fb623d78a2635201f2f6e5bc9cb282d00e91eaf5d1df9912748168f1b455253",
+      "1954-dwarf-male-guard": "429dcb0c859a224520a33ebfaf60c779d8474750c5f4e81b79189c06e85aaae7",
+      "1956-dwarf-male-guard": "c7d35ac4ab32df6c630f7d5913f2d883b579ca7124f73af7948c6a5a0eb091b8",
+      "2360-accept": "f8e7704535838e09c252a0a93e3474af24d4cd73ff4972bd2e2fcd5f41d80145",
+      "4728-progress": "834eeeca3495618492242f58d9ad94ffed0b6339ab5b59d2fa308769f713bd98",
+      "486-complete": "fa4e4868065ebcbfe04d9ddd3fdebe37c37a7e266e2b4b1798c8db71d35ea27c",
+      "54-accept": "cbf000bfd5710ce85c6d38d351e1dbabf5ff332119a8b4b3bb9ce0896f13bd61",
+      "f-2218-complete": "31d4c8becc5d731dc3370f6c42e3e51ba0ffeae75940eea0658cf1609b5047e9",
+      "m-2218-complete": "578c96bf129e51526c27ce6496bce98f137515139af2614767e12aecb3125ec9"
+    },
+    "pack": "SpokenQuestsAudioAlliance"
+  },
  "58303dac583e56bbcfb4266919e6299b6078832311910bd954749e869ee32796": {
   "captions": {
    "100-accept": "b9a26a2b60312945327dfdf62c52956f3ccfec026622b0e916d86fc5cf3a8863",

@@ -159,6 +159,8 @@ def verified_companion(row, raw, folder, *, clip_bytes=None, manifest_only=False
             binding.update(reference_spoken=binding["original_spoken"], delivery_variant=analysis["seed_variant"])
         binding.update(original_spoken=None, source_wave_sha256=analysis["wave_sha256"],
                        original_text=analysis["quest_text"])
+    if "giver_type" in row:
+        binding["giver_type"] = row["giver_type"]
     if any(manifest.get(key) != value for key, value in binding.items()):
         raise ValueError("The installed DMSpeaks companion belongs to another dialogue or sample clock.")
 

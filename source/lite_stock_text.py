@@ -8,7 +8,7 @@ import re
 
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 _PIN_FILE = Path(__file__).with_name("formats") / "spoken-caption-digests.json"
-_PIN_FILE_SHA256 = "3abc6f0ef4b084eb526be0c7c25f532365d94bdd5ebee0799c871a1434c39f08"
+_PIN_FILE_SHA256 = "2d857ae8652456b17ee1dcc5f972fdaada2b81ddf1ec09ca7b28cdb785065c34"
 _MODULE_GUARD = b"if not VoiceOver or not VoiceOver.DataModules then return end"
 _LANGUAGE_GUARDS = (
     b'if not VoiceOver.Language or VoiceOver.Language:GetClientLanguage() ~= "enUS" then return end',
