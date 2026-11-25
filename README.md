@@ -1,31 +1,24 @@
 # DMSpeaks Lite for WoW
 
-DMSpeaks Lite prepares player-name audio for the DMSpeaks add-on. Lite runs in the background while it fetches audio. You use the add-on to configure the provider and request the clips.
+DMSpeaks Lite prepares recordings of your character’s name for NPC dialogue in World of Warcraft Forever. The Windows companion fetches recordings. The add-on plays them in the game.
 
-## Downloads
+## Windows beta 12 decoder update
 
-Installers will be posted on the [Releases page](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases). The first public installer is pending.
+This download updates **an existing Windows x64 installation of the Beta 12 Northshire Fetch build**. It fixes a Windows audio decoder issue that could leave Northshire at 14 of 16 dialogues ready.
 
-Use the asset for your operating system and processor. A browser download works on Windows, Linux, and macOS. To script the download, copy the asset URL from its release.
+[Download the Northshire decoder update for Windows x64](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Northshire-Decoder-Update-Windows-x64.zip)
 
-On Windows, open PowerShell and save the installer:
+1. Pause any active fetch and close Lite.
+2. Right-click the downloaded ZIP and choose **Extract All**.
+3. Open the extracted folder and double-click **Update DMSpeaks Lite.cmd**. The updater checks that your installed build is compatible.
+4. Open Lite, select your character and use **Check Coverage**. If recordings are missing, choose **Start Fetch**.
 
-```powershell
-$url = 'PASTE_THE_WINDOWS_ASSET_URL_HERE'
-Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile "$env:TEMP\DMSpeaks-Lite-Setup.exe"
-```
+SHA-256 for the ZIP is `cbd2cd2107ac656a319397fd98b412be728a691db2af1d2ddd09cca8d4d1e80e`.
 
-On Linux or macOS, open Terminal and save the chosen asset:
+## First-time installation
 
-```sh
-url='PASTE_THE_ASSET_URL_HERE'
-filename='PASTE_THE_ASSET_FILENAME_HERE'
-curl --fail --location --output "$filename" "$url"
-```
+The full Windows installer and its matching voice archive are pending public release. [GitHub Releases](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases)
 
-## Fetch name audio in WoW
+## Sync a new character
 
-1. Run the Lite installer or follow the setup instructions for your platform.
-2. In WoW, click the **DMSpeaks minimap icon**. **Lite Setup** opens the setup guide.
-3. Choose **Fetch Settings**, save your speech provider and credentials, then save the dialogue coverage you want.
-4. Click **Queue Audio Fetch**. Use **Refresh Progress** to see which clips are ready. The buttons reload the WoW UI when safe.
+On first login, choose **Reload UI** in the add-on prompt, or type `/reload` in WoW chat. In the Windows companion, select **Refresh character**, choose your coverage, and start the fetch. When Lite reports your new recordings are ready, reload WoW to use them.
