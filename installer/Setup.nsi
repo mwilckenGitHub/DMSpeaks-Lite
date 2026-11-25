@@ -36,6 +36,13 @@ Var RepairCancel
 Var NativeRepairCancel
 Var HelperOutput
 
+!define MUI_PAGE_HEADER_TEXT "$(NoticesTitle)"
+!define MUI_PAGE_HEADER_SUBTEXT "$(NoticesSubtitle)"
+!define MUI_LICENSEPAGE_TEXT_TOP "$(NoticesDescription)"
+!define MUI_LICENSEPAGE_TEXT_BOTTOM " "
+!define MUI_LICENSEPAGE_BUTTON "$(^NextBtn)"
+!insertmacro MUI_PAGE_LICENSE "${LICENSE_NOTICES}"
+
 !define MUI_DIRECTORYPAGE_TEXT_TOP "$(ChooseGameFolderDescription)"
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "$(GameFolderLabel)"
 !define MUI_PAGE_HEADER_TEXT "$(ChooseGameFolderTitle)"

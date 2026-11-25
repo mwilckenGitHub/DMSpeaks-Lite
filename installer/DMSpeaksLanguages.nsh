@@ -9,6 +9,9 @@ LangString RecoveryMissing ${LANG_ENGLISH} "Windows could not find an installati
 LangString RecoveryOpenApps ${LANG_ENGLISH} "Open Installed apps and select Uninstall for DMSpeaks Lite - WOW."
 !else
 !insertmacro MUI_LANGUAGE "English"
+LangString NoticesTitle ${LANG_ENGLISH} "License and credits"
+LangString NoticesSubtitle ${LANG_ENGLISH} "DMSpeaks Lite and its contributors"
+LangString NoticesDescription ${LANG_ENGLISH} "Read the DMSpeaks license and the notices for Spoken and the bundled Windows components."
 LangString MaintenanceBusy ${LANG_ENGLISH} "Another DMSpeaks setup or maintenance window is open. Close it and try again."
 LangString RemovingOldFiles ${LANG_ENGLISH} "Removing older DMSpeaks files..."
 LangString CleanupIncomplete ${LANG_ENGLISH} "DMSpeaks could not finish cleaning up the previous installation. Close any running copies of Lite, then retry. Show details has the reason."

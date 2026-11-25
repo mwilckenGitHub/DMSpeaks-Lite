@@ -36,7 +36,9 @@ The source UI uses project-drawn waveform icons. Where an installation has a mat
 
 ## Build the historical Windows Setup and Recovery
 
-The NSIS recipes and DMSpeaks installation helpers are in `installer/`. The native build reproduces the registered Beta 12 base. It checks supplied build inputs by SHA-256, compiles Setup and Recovery, compares the extracted payloads and exercises install tracking in disposable Windows registry hives. This recipe uses the frozen Beta 12 base archive. Subsequent companion and content updates have their own versions.
+The NSIS recipes and DMSpeaks installation helpers are in `installer/`. The native build uses the registered Beta 12 base payload and displays the license, Spoken credits and runtime notices before game-folder selection. It checks supplied build inputs by SHA-256, compiles Setup and Recovery, compares the extracted payloads and exercises install tracking in disposable Windows registry hives. This recipe uses the frozen Beta 12 base archive. Subsequent companion and content updates have their own versions.
+
+The source checkout includes the three release notices used by default. To build with the notices for another authorized distribution, provide a directory containing `LICENSE`, `THIRD_PARTY.md` and `THIRD-PARTY-RUNTIMES.md` with `--notices`. The build records their hashes. [Installer notices](packaging/windows-setup/notices)
 
 The builder takes two explicit directories. The tools directory supplies `nsis-3.09/Bin/makensis.exe`, 7-Zip 22.01 and their matching support files. The inputs directory supplies the frozen installer resources, its desktop payload, matching runtime, original game-media archives, artwork and maintenance support. Those inputs must be obtained with the appropriate rights. The build checks the exact relative names and expected hashes in the lockfile. Use a new output directory. [Pinned input inventory](packaging/windows-setup/native-lock.json)
 
@@ -44,4 +46,4 @@ The builder takes two explicit directories. The tools directory supplies `nsis-3
 py -3 -B packaging/windows-setup/build.py --inputs "D:\BuildInputs\Setup-6cfd18e9" --tools "D:\BuildTools" --output "D:\Builds\Lite-Beta12"
 ```
 
-A successful native build writes `verified.json` and `tracking-verified.json` beside its two executables. The core build and source tests can run independently of these payloads. The two public downloads on the project page update supported existing Lite installations. A new player's full installation also requires the coordinated game-content package. [Download instructions](README.md) · [Third-party terms](THIRD_PARTY.md)
+A successful native build writes `verified.json` and `tracking-verified.json` beside its two executables. The core build and source tests can run independently of these payloads. The two public downloads on the project page update supported existing Lite installations. A new player's full installation also requires the coordinated game-content package. [Download instructions](README.md) Â· [Third-party terms](THIRD_PARTY.md)

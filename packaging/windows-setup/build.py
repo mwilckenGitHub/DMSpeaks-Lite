@@ -107,6 +107,8 @@ def main():
     parser.add_argument("--inputs", type=Path, required=True)
     parser.add_argument("--tools", type=Path, required=True)
     parser.add_argument("--kit", type=Path, help="Optionally check the original full kit, or use it to reconstruct absent extracted inputs")
+    parser.add_argument("--notices", type=Path, default=HERE / "notices",
+                        help="Directory containing the release's LICENSE, THIRD_PARTY.md and THIRD-PARTY-RUNTIMES.md")
     opts = parser.parse_args()
     if os.name != "nt":
         parser.error("This recipe requires Windows.")
@@ -147,7 +149,8 @@ def main():
         recipe = temp / "installer"
         recipe.mkdir()
         for name in SETUP_SOURCES:
-            require(source / name, digest(frozen / name))
+            if name not in ("Setup.nsi", "DMSpeaksLanguages.nsh"):
+                require(source / name, digest(frozen / name))
             # Windows MakeNSIS 3.09 treats / literally in a mixed include path.
             # Translate only the compile-time directory separator in the original recipe.
             content = (source / name).read_bytes().replace(b"${__FILEDIR__}/", b"${__FILEDIR__}\\")
@@ -165,7 +168,12 @@ def main():
         python_include = temp / "python.nsh"
         python_include.write_text("".join(f'File "{p}"\n' for p in runner), encoding="utf-8")
         common = dict(ICON=frozen / "DMSpeaks-Waveform.ico", SETUP_ID=baseline["setup_id"])
-        settings = dict(**common, OUTPUT=output / BASE_SETUP, BUILD="5996a8fb357ae6741b77", PAYLOAD=payload,
+        notices = ("LICENSE", "THIRD_PARTY.md", "THIRD-PARTY-RUNTIMES.md")
+        notice_text = "\n\n".join((opts.notices / name).read_text(encoding="utf-8-sig").rstrip() for name in notices)
+        notice_file = recipe / "notices.txt"
+        notice_file.write_text(notice_text + "\n", encoding="utf-16", newline="\r\n")
+        notice_hashes = {name: digest(opts.notices / name) for name in notices}
+        settings = dict(**common, LICENSE_NOTICES=notice_file, OUTPUT=output / BASE_SETUP, BUILD="5996a8fb357ae6741b77", PAYLOAD=payload,
                         PAYLOAD_COMMANDS=payload_include, MAINTENANCE_PYTHON_FILES=python_include,
                         RUNTIME_PRUNER=frozen / "prune_runtimes.py", RUNTIME_OWNERS=frozen / "runtime-files.json.gz",
                         STOCK_OWNERS=plug / "stock-files.json.gz", PLACEMENT=plug / "install_addon.py",
@@ -201,6 +209,8 @@ def main():
         extract(seven, output / RECOVERY, temp / "recovery")
         compare("Recovery", inventory(temp / "recovery"), {"$PLUGINSDIR/maintenance.exe": rebuilt_wizard})
         report = dict(base_build=settings["BUILD"], setup_id=baseline["setup_id"],
+                      wizard_sources={name: digest(source / name) for name in SETUP_SOURCES},
+                      install_notices=notice_hashes,
                       runtime=baseline["runtime_build"], base_game_sha256=baseline["archive"],
                       golden_setup=baseline["kit_files"][BASE_SETUP]["sha256"],
                       checked_desktop_files=len(desktop_files), checked_setup_files=len(actual_files),
