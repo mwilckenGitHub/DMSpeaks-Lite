@@ -25,3 +25,7 @@ This download updates an installed copy of Lite. A full installer for new player
 ## Sync a new character
 
 On first login, choose **Reload UI** in the add-on prompt, or type `/reload` in WoW chat. In the Windows companion, select **Refresh character**, choose your coverage, and start the fetch. When Lite reports your new recordings are ready, reload WoW to use them.
+
+## License
+
+DMSpeaks contributors license their original code and documentation under the MIT License. The project’s notice explains how that license applies to software, voice packs, and recordings made with DMSpeaks. [License](LICENSE) · [Third-party material](THIRD_PARTY.md)
