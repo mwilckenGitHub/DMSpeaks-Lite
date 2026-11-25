@@ -7,10 +7,11 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 HERE = Path(__file__).resolve().parents[1]
 MODULES = (
-    "dialogue_language", "engine_limits", "guide_bindings", "leading_word",
+    "dialogue_language", "engine_limits", "english_name_pronunciation", "fish_references",
+    "guide_bindings", "leading_word",
     "lite_clip_bounds", "lite_context_routes", "lite_fetch_timing",
     "lite_legacy_clip_bounds", "lite_portable_io", "lite_races",
-    "lite_source_identity", "pcm_input", "phoneme_alignment",
+    "lite_source_identity", "name_placeholder_audio", "pcm_input", "phoneme_alignment", "phoneme_process",
     "phonetic_join_profiles", "project_recovery", "quiet_boundaries", "vorbis_pcm",
 )
 

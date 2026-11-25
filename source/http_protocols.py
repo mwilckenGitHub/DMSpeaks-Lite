@@ -2,8 +2,7 @@ import json
 import math
 import re
 import base64
-import hashlib
-from pathlib import Path
+from fish_references import read_reference as _fish_reference
 from urllib.parse import quote, urlsplit
 from xml.sax.saxutils import escape, quoteattr
 import xml.etree.ElementTree as ET
@@ -78,32 +77,6 @@ def _build_fish(profile, text, instructions, rate, voice, secret, reference=None
         "body": encoded,
         "reference_evidence": reference_evidence
     }
-
-def _fish_reference(item):
-    if not isinstance(item, dict):
-        raise ValueError('Provide Fish references as audio and transcript pairs.')
-    transcript = item.get('transcript')
-    if not isinstance(transcript, str) or not transcript.strip():
-        raise ValueError('Fish reference audio needs its exact spoken transcript.')
-    audio = item.get('wav_bytes')
-    if audio is None:
-        path = Path(item.get('path') or item.get('uri') or '')
-        if not path.is_file() or not 0 < path.stat().st_size <= 20_000_000:
-            raise ValueError('Choose an accessible voice reference under 20 MB.')
-        if path.suffix.lower() not in {'.wav', '.mp3', '.flac'}:
-            raise ValueError('Use a WAV, MP3 or FLAC reference for the hosted Fish service.')
-        audio = path.read_bytes()
-    elif not isinstance(audio, bytes) or audio[:4] != b'RIFF' or audio[8:12] != b'WAVE':
-        raise ValueError('The in-memory Fish reference must be a WAV recording.')
-    if not 0 < len(audio) <= 20_000_000:
-        raise ValueError('Choose an accessible voice reference under 20 MB.')
-    digest = hashlib.sha256(audio).hexdigest()
-    expected = item.get('content_sha256') or item.get('sha256')
-    if expected and digest != expected:
-        raise ValueError('The voice reference changed. Select the current recording before sending it.')
-    return dict(audio=audio, text=transcript), dict(
-        id=item.get('id'), audio_sha256=digest,
-        transcript_sha256=hashlib.sha256(transcript.encode('utf-8')).hexdigest())
 
 def _build_elevenlabs(profile, text, instructions, rate, voice, secret):
     endpoint = profile.get('endpoint', '').rstrip('/')

@@ -52,13 +52,18 @@ def managed_name_matches(native, paced, extension, value, canonical_native):
                         for index in sorted(native_parts)]
 
 
-def matches_quest_wording(folder, seal, row):
-    if not row["source_id"].startswith("q:") or not row.get("source_text_sha256"):
-        return True
+def matching_source_metadata(folder, seal, row):
     raw = (folder / "native-selection-metadata.json").read_bytes()
     if digest(raw) != seal["native_selection_metadata_sha256"]:
-        raise ValueError("The sealed quest wording changed.")
-    return digest(json.loads(raw)["original_text"].encode()) == row["source_text_sha256"]
+        raise ValueError("The sealed playback source changed.")
+    metadata = json.loads(raw)
+    original = metadata.get("original_spoken") or {}
+    if row.get("stock_path") and original.get("path") and row["stock_path"] != original["path"]:
+        return None
+    if (row["source_id"].startswith("q:") and row.get("source_text_sha256")
+            and digest(metadata["original_text"].encode()) != row["source_text_sha256"]):
+        return None
+    return metadata
 
 
 def dialogue_seals(state, row):
@@ -78,7 +83,7 @@ def dialogue_seals(state, row):
 def require_name_extension(app, row, state=None):
     state = state if state is not None else app.store.setting(SETTING,{}) or {}
     if any(seal.get('clock_format') == EXPANDED_FORMAT
-           and matches_quest_wording(filesystem_path(path), seal, row)
+           and matching_source_metadata(filesystem_path(path), seal, row) is not None
            for path, seal in dialogue_seals(state, row)):
         raise ValueError('This dialogue has prepared fallback audio. Personalized names need a verified expanded-context return.')
 
@@ -91,11 +96,8 @@ def prepared_base(app,row,state=None,*,verify_audio=True,giver_types=None):
     for path,seal in dialogue_seals(state, row):
         folder=filesystem_path(path);m=read(folder/'dialogue.json')
         if dialogue_source_tuple(m) != (source_id,npc_id,locale):continue
-        if not matches_quest_wording(folder, seal, row):continue
-        data=(folder/'native-selection-metadata.json').read_bytes()
-        if digest(data)!=seal['native_selection_metadata_sha256']:
-            raise ValueError('The sealed playback source changed.')
-        metadata=json.loads(data)
+        metadata=matching_source_metadata(folder, seal, row)
+        if metadata is None:continue
         if giver_types is not None and metadata.get("giver_type") not in giver_types:
             continue
         if row.get("game_object_reference") and metadata.get("giver_type") != "GameObject":

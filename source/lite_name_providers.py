@@ -3,21 +3,21 @@
 from base64 import b64encode
 from contextlib import nullcontext
 from hashlib import sha256
-from fractions import Fraction
 from http.client import IncompleteRead
 from io import BytesIO
 import json
 import re
 from ssl import SSLEOFError
 import subprocess
+import wave
 from time import perf_counter
 from urllib.parse import urlsplit
 from urllib.request import Request
-import wave
 
 import soundfile as sf
 
-from http_protocols import _fish_reference, build_request, parse_response
+from fish_references import joined_fish_reference, reference_budget
+from http_protocols import build_request, parse_response
 
 
 class UnusableProviderAudio(ValueError):
@@ -64,54 +64,6 @@ def read_provider_audio(response):
             and length.isascii() and length.isdecimal() and str(len(audio)) != (length.lstrip("0") or "0")):
         raise UnusableProviderAudio("The provider returned an incomplete recording.")
     return bytes(audio)
-
-
-def reference_budget(reference):
-    """Apply the shared project budget before either Fish transport is built."""
-    ordered = reference if isinstance(reference, list) else [reference]
-    if not ordered:
-        raise ValueError("Provide the ordered voice and dialogue references.")
-    duration = Fraction(0)
-    for item in ordered:
-        sample, _ = _fish_reference(item)
-        try:
-            with sf.SoundFile(BytesIO(sample["audio"])) as audio:
-                if audio.frames <= 0 or audio.samplerate <= 0:
-                    raise ValueError("The voice reference has no bounded sample clock.")
-                duration += Fraction(audio.frames, audio.samplerate)
-        except sf.LibsndfileError as error:
-            raise ValueError("The voice reference has an unreadable sample clock.") from error
-        if duration > 120:
-            raise ValueError("The ordered Fish references exceed the shared 120-second budget.")
-    return duration
-
-
-def joined_fish_reference(reference):
-    """Join the voice reference and complete dialogue on one sample clock."""
-    ordered = reference if isinstance(reference, list) else [reference]
-    samples, evidence = zip(*(_fish_reference(ref) for ref in ordered), strict=True)
-    reference_bytes = sum(len(sample["audio"]) for sample in samples)
-    frames = []
-    count = 0
-    for sample in samples:
-        with wave.open(BytesIO(sample["audio"]), "rb") as audio:
-            if (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) != (1, 2, 44100):
-                raise ValueError("The ordered Fish reference must use 44.1 kHz mono PCM WAV.")
-            count += audio.getnframes()
-            if count > 120 * 44100:
-                raise ValueError("The ordered Fish reference exceeds the established 120-second cap.")
-            payload = audio.readframes(audio.getnframes())
-            if len(payload) != audio.getnframes() * 2:
-                raise ValueError("The ordered Fish reference is incomplete.")
-            frames.append(payload)
-    with BytesIO() as out:
-        with wave.open(out, "wb") as wav:
-            wav.setparams((1, 2, 44100, 0, "NONE", "not compressed"))
-            wav.writeframes(b"".join(frames))
-        joined = out.getvalue()
-    result = dict(id=ordered[0]["id"], wav_bytes=joined, sha256=sha256(joined).hexdigest(),
-                  transcript="\n\n".join(item["text"] for item in samples))
-    return result, list(evidence) if isinstance(reference, list) else evidence[0], reference_bytes
 
 
 def lossless_fish_body(body):
@@ -423,9 +375,7 @@ class NameProvider:
         pcm = result.stdout
         if result.returncode or not 0 < len(pcm) <= 60 * 44100 * 2 or len(pcm) % 2:
             raise ValueError("The provider returned incomplete or unsupported audio.")
-        import io
-        import wave
-        with io.BytesIO() as out:
+        with BytesIO() as out:
             with wave.open(out, "wb") as wav:
                 wav.setparams((1, 2, 44100, 0, "NONE", "not compressed"))
                 wav.writeframes(pcm)

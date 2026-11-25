@@ -22,6 +22,14 @@ Extract the ZIP into your Python application and install its `requirements.txt`.
 
 ## Use the Windows companion from source
 
+The functions archive includes the same ordered Fish reference and English name-audio
+checks used by the DMSpeaks authoring tools. A fetch supplies the configured voice
+reference first and the complete original dialogue second when available. The
+acoustic check uses PocketSphinx and its English model and dictionary. Pronouncing
+names outside that dictionary can use eSpeak NG. The source checks use synthetic
+recordings for reference order, placeholder timing and selection of the recorded
+source when several actors share a quest stage.
+
 The player-facing entry point is `source/wow_fetch_desktop.py`. Its first argument is the WoW installation containing `Interface` and `WTF`. The companion reads the installed DMSpeaks managed playback add-ons, matching name catalog and metadata. A licensed, version-matched installation of these assets and Spoken is required to run an in-game name fetch. Installing Spoken alone supplies only part of that data.
 
 Put FFmpeg and FFprobe on your PATH. Fresh speech also needs the PocketSphinx command-line aligner, a matching model and pronunciation dictionary, and a configured speech provider. The example provider file contains the public provider options. The companion creates and stores your personal configuration in its own data directory. [PocketSphinx setup](source/third_party/pocketsphinx.md)

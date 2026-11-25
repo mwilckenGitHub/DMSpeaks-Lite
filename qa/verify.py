@@ -16,7 +16,8 @@ SUITES = (
     "fetch_timing_history", "profile_archive_batch", "fetch_provider_cooldown",
     "fetch_restart", "fetch_request_races", "fetch_storage_crash",
     "fetch_source_availability", "fetch_name_retakes", "saved_clip_bounds",
-    "skyborne_profiles", "fetch_progress_status", "profile_session",
+    "skyborne_profiles", "fetch_progress_status", "profile_session", "placeholder_timing",
+    "exact_stock_selection", "ordered_fish_reference",
 )
 
 
@@ -39,6 +40,10 @@ def verify_archive(work):
         "from leading_word import leading_word;"
         "from phonetic_join_profiles import load_profiles;"
         "from lite_fetch_timing import npc_timings;"
+        "from fish_references import joined_fish_reference,read_reference;"
+        "from name_placeholder_audio import placeholder_evidence;"
+        "assert callable(joined_fish_reference) and callable(read_reference);"
+        "assert placeholder_evidence(None,[],0,{}) is None;"
         "assert leading_word('Welcome, $n.',9,[(9,11)]).text=='Welcome';"
         "assert npc_timings([{'npc':'Guide','elapsed_seconds':2}])[0]['elapsed_seconds']==2;"
         "assert load_profiles()"

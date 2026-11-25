@@ -6,22 +6,17 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import subprocess
 from tempfile import TemporaryDirectory
 from time import perf_counter
 import unicodedata
 
+from phoneme_process import PhonemeAlignmentBusy, inference_command as _inference_command, run_tool as _tool_run
 from mfa_phonemes import import_grid
 from phoneme_alignment import language_tag, read, write
 
 _PROFILE_KEYS = ('executable', 'acoustic_model', 'dictionary', 'profile_id')
 _GRAMMAR_MISS = 'Final result does not match the grammar'
 _WIDER_SEARCH = ('-beam', '1e-65', '-pbeam', '1e-65', '-wbeam', '1e-65')
-_LEASE_BUSY = 75
-
-
-class PhonemeAlignmentBusy(ValueError):
-    """The shared inference runtime is in use by another operation."""
 
 
 def _tokens(transcript):
@@ -88,20 +83,6 @@ def select_profile(parser, language):
     return None
 
 
-def _tool_run(args, timeout):
-    try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False,
-            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise ValueError('The local phoneme aligner could not complete.') from error
-    if args[0] == 'flock' and result.returncode == _LEASE_BUSY:
-        raise PhonemeAlignmentBusy('The shared inference lease is busy.')
-    if result.returncode:
-        details = result.stderr.strip().splitlines()[-1:] or ['No output from the aligner.']
-        raise ValueError('Local phoneme alignment failed. ' + details[0][:240])
-    return result
-
-
 def _alignment_grid(result):
     try:
         words, phones = [], []
@@ -120,15 +101,6 @@ def _alignment_grid(result):
 def _digest(path):
     with path.open('rb') as file:
         return hashlib.file_digest(file, 'sha256').hexdigest()
-
-
-def _inference_command(executable, arguments, lease, wait_seconds=0):
-    # The shared lease lives outside the project on machines that use one.
-    # flock owns the lease for the lifetime of the short-lived CPU process.
-    if not lease:
-        return [str(executable), *arguments]
-    wait = ['-w', str(wait_seconds)] if wait_seconds else ['-n']
-    return ['flock', *wait, '-E', str(_LEASE_BUSY), str(lease), str(executable), *arguments]
 
 
 def align(path, asset, transcript, config, *, wait_seconds=0):
