@@ -1,4 +1,4 @@
-"""Check a delivered English name clip for audible stock 'adventurer' speech."""
+"""Acoustic checks on English player-name recordings and their measured cuts."""
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -20,6 +20,46 @@ _OTHER = ("AH V EH", "AH N", "AH", "AH D", "AH B EH", "AH T EH", "AH D IH", "AH 
           "F EH", "TH EH")
 _STOCK_INTERIOR = "V EH N CH ER"
 _KEYWORDS = ("AE D V EH N", "AH D V EH N", "AE D V EH", "AH D V EH", "V EH N", *_STOCK[:2], _STOCK_INTERIOR)
+
+
+def detached_name_speech(samples, measured, reported):
+    """Detect a second voiced passage after a measured name, inside its reported word.
+
+    Both intervals must refer to the same 44.1 kHz mono source. The caller
+    binds the reported interval to the transcript and excludes the next word.
+    Word timestamps alone do not establish a bad cut.
+    """
+    import numpy as np
+
+    start, stop = measured
+    first, last = reported
+    if not (0 <= start < stop <= len(samples) and 0 <= first < last <= len(samples)
+            and first <= stop and start < last and last - stop >= round(.35 * RATE)):
+        return False
+    hop = RATE // 50
+    tail = np.asarray(samples[stop:last], dtype=np.float32)
+    frames = tail[:len(tail) // hop * hop].reshape(-1, hop)
+    rms = np.sqrt(np.mean(frames ** 2, axis=1))
+    # Require a separate onset. An uninterrupted sustained vowel or a fading
+    # final consonant can legitimately outlast the phone aligner's timestamp.
+    quiet = next((i + 4 for i in range(6) if np.all(rms[i:i + 4] < .004)), None)
+    if quiet is None:
+        return False
+    voiced = 0
+    for i in range(quiet, len(frames) - 1):
+        if rms[i] < .012:
+            continue
+        # Average groups of three samples to measure vocal periodicity at
+        # 14.7 kHz over 40 ms. Unvoiced breath or broadband noise is insufficient.
+        frame = tail[i * hop:(i + 2) * hop].reshape(-1, 3).mean(axis=1)
+        frame -= np.mean(frame)
+        power = np.correlate(frame, frame, 'full')[len(frame) - 1:]
+        pitch = power[RATE // (3 * 400):RATE // (3 * 70)]
+        if power[0] > 0 and np.max(pitch) > .45 * power[0]:
+            voiced += 1
+        if voiced >= 8:
+            return True
+    return False
 
 
 @lru_cache(maxsize=2)

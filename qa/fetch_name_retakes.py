@@ -53,6 +53,62 @@ class ContinuingNameContext(unittest.TestCase):
                 self.assertIs(continuing_name_context(row), row)
 
 
+class DetachedProviderName(unittest.TestCase):
+    rate = 44100
+
+    def setUp(self):
+        import numpy as np
+        self.pcm = np.zeros(2 * self.rate, dtype=np.float32)
+        t = np.arange(self.rate // 2) / self.rate
+        self.voice = .13 * np.sin(2 * np.pi * 165 * t) + .05 * np.sin(2 * np.pi * 330 * t)
+        self.pcm[:len(t)] = self.voice
+        self.pcm[self.rate:self.rate + len(t)] = self.voice
+        self.raw = {"sha256": "a" * 64, "sample_count": len(self.pcm), "sample_rate": self.rate}
+        self.words = [{"word": "Mira", "start": 0, "end": 1.5},
+                      {"word": "go", "start": 1.6, "end": 1.85}]
+
+    def check(self, *, digest=None, measured_end=.56):
+        from lite_portable_render import review_provider_name_timing
+        observation = {**self.raw, "words": self.words, "audio_sha256": self.raw["sha256"]}
+        timing = {"format": "dmspeaks-word-timing-evidence", "bound_audio_sha256": digest or self.raw["sha256"],
+                  "observations": {"generation": observation}}
+        return review_provider_name_timing(self.raw, timing, "Mira, go.", [0, 4],
+            {"name_samples": [0, round(measured_end * self.rate)]}, self.pcm, "b" * 64)
+
+    def test_separate_voiced_passage_inside_name_retries_the_corresponding_request(self):
+        with self.assertRaises(names.NameCutUnavailable) as failed:
+            self.check()
+        self.assertEqual(failed.exception.request_id, "b" * 64)
+
+    def test_paced_choice_must_retain_the_complete_name_and_exclude_the_extra_word(self):
+        from lite_paced_name import cuts_clear_of_reported_fallback
+        name = {"name_samples": [40, 80], "paced_samples": [[10, 30]]}
+        overlap = (0, None, [20, 81], None)
+        short = (0, None, [30, 79], None)
+        clean = (0, None, [30, 80], None)
+        with self.assertRaises(names.NameCutUnavailable) as failed:
+            cuts_clear_of_reported_fallback([overlap, short], name, "c" * 64)
+        self.assertEqual(failed.exception.request_id, "c" * 64)
+        self.assertEqual(cuts_clear_of_reported_fallback([overlap, clean, short], name, "c" * 64), [clean])
+
+    def test_overlapping_timestamp_cannot_assign_next_word_to_name(self):
+        self.words[1]["start"] = .9
+        self.assertIsNotNone(self.check()[0])
+
+    def test_mismatched_audio_short_offset_quiet_or_unvoiced_tail(self):
+        import numpy as np
+        self.assertEqual(self.check(digest="c" * 64), (None, []))
+        self.assertIsNotNone(self.check(measured_end=1.4)[0])
+        self.pcm[self.rate:] = 0
+        self.assertIsNotNone(self.check()[0])
+        self.pcm[self.rate:self.rate + len(self.voice)] = np.random.default_rng(12).normal(0, .05, len(self.voice))
+        self.assertIsNotNone(self.check()[0])
+
+    def test_sustained_vowel_is_not_a_second_utterance(self):
+        self.pcm[:len(self.voice) * 3] = list(self.voice) * 3
+        self.assertIsNotNone(self.check()[0])
+
+
 class FitRetakes(unittest.TestCase):
     def setUp(self):
         temp = TemporaryDirectory()

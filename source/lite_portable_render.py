@@ -12,6 +12,7 @@ import numpy as np
 import soundfile as sf
 
 from guide_bindings import RATE
+from name_placeholder_audio import detached_name_speech
 from phoneme_alignment import transcript_digest, validate
 from phoneme_snap import returned_name_region
 from provider_name_cut import extra_fallback_words, name_window
@@ -201,16 +202,22 @@ def provider_generation_observation(asset, timing):
     return [], {}
 
 
-def review_provider_name_timing(asset, timing, transcript, span, measured):
+def review_provider_name_timing(asset, timing, transcript, span, measured, samples, request_id):
     words, observation = provider_generation_observation(asset, timing)
     if not words:
         return None, []
     try:
-        _, _, _, first, last = name_window(transcript, span, words, asset["sample_count"])
+        bound, _, last_word, first, last = name_window(transcript, span, words, asset["sample_count"])
     except ValueError:
         fallback = extra_fallback_words(transcript, span, words, asset["sample_count"])
         return None, [entry["samples"] for entry in fallback if entry["near_name"]]
     phoneme_start, phoneme_end = measured["name_samples"]
+    bounded_end = last
+    if last_word + 1 < len(bound):
+        bounded_end = min(last, round(bound[last_word + 1]["start"] * RATE))
+    if detached_name_speech(samples, measured["name_samples"], (first, bounded_end)):
+        raise NameCutUnavailable("The returned recording has a second voiced passage inside the requested name.",
+                                 request_id=request_id)
     return dict(audio_sha256=asset["sha256"], timing_source=observation.get("timing_source", "provider"),
                 provider_samples=[first, last],
                 provider_minus_phoneme_samples=[first - phoneme_start, last - phoneme_end]), []
@@ -233,7 +240,7 @@ def render(folder, row, base, return_path, audio_evidence, name, spoken_name, re
     spoken_form = spoken_name + row.get("name_suffix", "")
     measured = returned_name_region(audio_evidence, asset, transcript, spoken_form, span)
     comparison, fallback_intervals = review_provider_name_timing(
-        asset, provider_timing, request_text, request_span, measured)
+        asset, provider_timing, request_text, request_span, measured, returned_pcm, request_id)
     base_phones = row["base_phones"]["words"]
     stock, (lo, hi), (left, right) = row["stock_text"], row["context"], row["slot"]
     begin_index, end_index, first, last = [count(stock[:cut]) for cut in (lo, hi, left, right)]
@@ -384,6 +391,7 @@ def render(folder, row, base, return_path, audio_evidence, name, spoken_name, re
                 cache_bytes(folder / "dialogue.json", (stage / "dialogue.json").read_bytes())
             return manifest
     if excluded_fallback:
-        raise ValueError("The provider reported extra Adventurer speech in a proposed Name cut. No clean candidate passed.")
+        raise NameCutUnavailable("The provider reported extra Adventurer speech in a proposed Name cut. No clean candidate passed.",
+                                 request_id=request_id)
     raise NameCutUnavailable("The returned recording has no verified name clip with clean playback joins.",
                              request_id=request_id)

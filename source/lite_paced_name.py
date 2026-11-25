@@ -217,6 +217,17 @@ def name_verification_input(words, leader_count, name_count, start, stop, slot):
     return [*spoken, name], onset - start, slot
 
 
+def cuts_clear_of_reported_fallback(selections, exclusion, request_id):
+    first, last = exclusion["name_samples"]
+    clean = [option for option in selections if option[2][0] <= first and last <= option[2][1]
+             and not any(option[2][0] < end and begin < option[2][1]
+                         for begin, end in exclusion["paced_samples"])]
+    if not clean:
+        raise NameCutUnavailable("The paced Name has no measured cut clear of the reported Adventurer speech.",
+                                 request_id=request_id)
+    return clean
+
+
 def measure_paced_fallback(raw, receipt, donor, transcript, span, excluded, align_factory, scratch, slot, leader):
     """Measure an observed extra word on the transformed waveform's own clock."""
     raw_asset = dict(sha256=receipt["wav_sha256"], sample_rate=44100, sample_count=sf.info(raw).frames)
@@ -575,13 +586,7 @@ def stage_name(app,row,native_folder,name,spoken,provider,members,queue,status,a
             if excluded := item.get("excluded_provider_fallback_samples"):
                 exclusion, caption_words = measure_paced_fallback(raw, receipt, donor, request_text, request_span, excluded,
                                                                   align_factory, scratch, slot, leader)
-                first_phone, last_phone = exclusion["name_samples"]
-                selections = [option for option in selections if option[2][0] <= first_phone
-                              and last_phone <= option[2][1]
-                              and not any(option[2][0] < end and begin < option[2][1]
-                                          for begin, end in exclusion["paced_samples"])]
-                if not selections:
-                    raise ValueError("The paced Name has no measured cut clear of the reported Adventurer speech.")
+                selections = cuts_clear_of_reported_fallback(selections, exclusion, request_id)
             _,source,take,joins=selections[0];a,b=take;start,stop=source
             # The owned context and the name share one performance. Keep every
             # sample between the two outer cuts, including any connecting speech.

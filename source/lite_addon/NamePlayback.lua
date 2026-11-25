@@ -650,7 +650,8 @@ local function QuestVariant(clip, candidates, key, stockBound)
                 or quests.Utils.GetBodyForGUID and quests.Utils:GetBodyForGUID(clip.unitGUID)))
             and entry.event == clip.event and entry.key == key
             and (shown and MatchesDialogueText(shown, entry)
-                or stockReplay and entry.deliveryClock and not entry.worldStateText and giver == entry.npc) then
+                or stockReplay and entry.deliveryClock and not entry.requireShownText
+                    and not entry.worldStateText and giver == entry.npc) then
             if entry.npc == giver then
                 if result then return end
                 result = entry
