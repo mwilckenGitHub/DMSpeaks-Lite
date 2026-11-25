@@ -44,7 +44,7 @@ The source UI uses project-drawn waveform icons. Where an installation has a mat
 
 ## Build the historical Windows Setup and Recovery
 
-The NSIS recipes and DMSpeaks installation helpers are in `installer/`. The native build uses the registered Beta 12 base payload and displays the license, Spoken credits and runtime notices before game-folder selection. It checks supplied build inputs by SHA-256, compiles Setup and Recovery, compares the extracted payloads and exercises install tracking in disposable Windows registry hives. This recipe uses the frozen Beta 12 base archive. Subsequent companion and content updates have their own versions.
+The NSIS recipes and DMSpeaks installation helpers are in `installer/`. The native build uses the registered Beta 12 base payload. Setup requires acceptance of the [Lite end-user agreement](EULA.md) and then displays the MIT license, Spoken credits and runtime notices before game-folder selection. An unattended install uses `/S /ACCEPTEULA` after the operator has accepted the agreement. The builder checks supplied inputs by SHA-256, compiles Setup and Recovery, compares the extracted payloads and exercises install tracking in disposable Windows registry hives. This recipe uses the frozen Beta 12 base archive. Subsequent companion and content updates have their own versions.
 
 The source checkout includes the three release notices used by default. To build with the notices for another authorized distribution, provide a directory containing `LICENSE`, `THIRD_PARTY.md` and `THIRD-PARTY-RUNTIMES.md` with `--notices`. The build records their hashes. [Installer notices](packaging/windows-setup/notices)
 

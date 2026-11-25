@@ -173,7 +173,11 @@ def main():
         notice_file = recipe / "notices.txt"
         notice_file.write_text(notice_text + "\n", encoding="utf-16", newline="\r\n")
         notice_hashes = {name: digest(opts.notices / name) for name in notices}
-        settings = dict(**common, LICENSE_NOTICES=notice_file, OUTPUT=output / BASE_SETUP, BUILD="5996a8fb357ae6741b77", PAYLOAD=payload,
+        agreement = HERE.parents[1] / "EULA.md"
+        agreement_file = recipe / "end-user-agreement.txt"
+        agreement_file.write_text(agreement.read_text(encoding="utf-8-sig"), encoding="utf-16", newline="\r\n")
+        settings = dict(**common, END_USER_AGREEMENT=agreement_file, LICENSE_NOTICES=notice_file,
+                        OUTPUT=output / BASE_SETUP, BUILD="5996a8fb357ae6741b77", PAYLOAD=payload,
                         PAYLOAD_COMMANDS=payload_include, MAINTENANCE_PYTHON_FILES=python_include,
                         RUNTIME_PRUNER=frozen / "prune_runtimes.py", RUNTIME_OWNERS=frozen / "runtime-files.json.gz",
                         STOCK_OWNERS=plug / "stock-files.json.gz", PLACEMENT=plug / "install_addon.py",
@@ -210,7 +214,7 @@ def main():
         compare("Recovery", inventory(temp / "recovery"), {"$PLUGINSDIR/maintenance.exe": rebuilt_wizard})
         report = dict(base_build=settings["BUILD"], setup_id=baseline["setup_id"],
                       wizard_sources={name: digest(source / name) for name in SETUP_SOURCES},
-                      install_notices=notice_hashes,
+                      install_notices=notice_hashes, end_user_agreement={"EULA.md": digest(agreement)},
                       runtime=baseline["runtime_build"], base_game_sha256=baseline["archive"],
                       golden_setup=baseline["kit_files"][BASE_SETUP]["sha256"],
                       checked_desktop_files=len(desktop_files), checked_setup_files=len(actual_files),

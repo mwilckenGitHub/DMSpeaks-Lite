@@ -9,6 +9,10 @@ LangString RecoveryMissing ${LANG_ENGLISH} "Windows could not find an installati
 LangString RecoveryOpenApps ${LANG_ENGLISH} "Open Installed apps and select Uninstall for DMSpeaks Lite - WOW."
 !else
 !insertmacro MUI_LANGUAGE "English"
+LangString EulaTitle ${LANG_ENGLISH} "End-user license agreement"
+LangString EulaSubtitle ${LANG_ENGLISH} "Official DMSpeaks Lite distribution"
+LangString EulaDescription ${LANG_ENGLISH} "Read the agreement before installing DMSpeaks Lite."
+LangString EulaAcceptance ${LANG_ENGLISH} "I accept the DMSpeaks Lite End-User License Agreement."
 LangString NoticesTitle ${LANG_ENGLISH} "License and credits"
 LangString NoticesSubtitle ${LANG_ENGLISH} "DMSpeaks Lite and its contributors"
 LangString NoticesDescription ${LANG_ENGLISH} "Read the DMSpeaks license and the notices for Spoken and the bundled Windows components."

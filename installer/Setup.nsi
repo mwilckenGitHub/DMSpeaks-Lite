@@ -36,6 +36,15 @@ Var RepairCancel
 Var NativeRepairCancel
 Var HelperOutput
 
+!define MUI_PAGE_HEADER_TEXT "$(EulaTitle)"
+!define MUI_PAGE_HEADER_SUBTEXT "$(EulaSubtitle)"
+!define MUI_LICENSEPAGE_TEXT_TOP "$(EulaDescription)"
+!define MUI_LICENSEPAGE_TEXT_BOTTOM " "
+!define MUI_LICENSEPAGE_CHECKBOX
+!define MUI_LICENSEPAGE_CHECKBOX_TEXT "$(EulaAcceptance)"
+!define MUI_LICENSEPAGE_BUTTON "$(^NextBtn)"
+!insertmacro MUI_PAGE_LICENSE "${END_USER_AGREEMENT}"
+
 !define MUI_PAGE_HEADER_TEXT "$(NoticesTitle)"
 !define MUI_PAGE_HEADER_SUBTEXT "$(NoticesSubtitle)"
 !define MUI_LICENSEPAGE_TEXT_TOP "$(NoticesDescription)"
@@ -287,6 +296,16 @@ FunctionEnd
 !macroend
 
 Function .onInit
+    IfSilent 0 acceptance_checked
+    ${GetParameters} $0
+    ClearErrors
+    ${GetOptions} $0 "/ACCEPTEULA" $1
+    IfErrors acceptance_missing
+    StrCmp $1 "" acceptance_checked
+acceptance_missing:
+    SetErrorLevel 6
+    Quit
+acceptance_checked:
     !insertmacro AcquireMaintenanceLock
     SetRegView 64
     ReadRegStr $GameFolder HKCU "${APP_ENTRY}" "GameFolder"
