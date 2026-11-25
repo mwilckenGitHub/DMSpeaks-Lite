@@ -8,7 +8,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "source"))
 from lite_context_routes import profile_choices
 from lite_name_bridge import imported_character, load_settings, remember_character
-from lite_portable_constraints import load_name_areas, matches_character, queue_areas
+from lite_portable_constraints import load_name_areas, load_npc_factions, matches_character, queue_areas
 from lite_races import profile_race
 
 
@@ -112,6 +112,33 @@ class SkyborneEligibility(unittest.TestCase):
                                         "areas": {key: ["northshire", "coldridge-valley"]}}))
             self.assertEqual(load_name_areas(addons, "valid", [self.row], race="gnome")[key], "coldridge-valley")
             self.assertEqual(load_name_areas(addons, "valid", [self.row], race="human")[key], "northshire")
+
+    def test_encounter_reaction_requires_the_exact_giver_event_and_audio(self):
+        row = dict(self.row, stock_sha256="a" * 64)
+        override = {**{k: row[k] for k in ("npc_id", "source_id", "stock_sha256")}, "reaction": "alliance"}
+        with tempfile.TemporaryDirectory() as tmp:
+            game = Path(tmp).resolve()
+            directory = game / "DMSpeaksNameData/NameFetch"
+            directory.mkdir(parents=True)
+            (directory / "Prepared-dialogue-plans.zip").touch()
+            path = directory / "NpcFactions.json"
+            doc = dict(format=1, catalog_sha256="valid", npcs={"12": "hostile", "13": "hostile"},
+                       dialogue_reactions=[override])
+            path.write_text(json.dumps(doc))
+            factions = load_npc_factions(game, "valid")
+            assert_matches = lambda sample, values: matches_character(sample, "human", values, factions)
+            self.assertTrue(assert_matches(row, self.alliance))
+            for field, other in (("npc_id", 13), ("source_id", "q:1:complete"), ("stock_sha256", "b" * 64)):
+                with self.subTest(field=field):
+                    self.assertFalse(assert_matches({**row, field: other}, self.alliance))
+            self.assertFalse(assert_matches(row, self.horde))
+            self.assertFalse(assert_matches(row, {**self.alliance, "class": "rogue"}))
+            for invalid in ([override, override], [{**override, "stock_sha256": "short"}]):
+                path.write_text(json.dumps({**doc, "dialogue_reactions": invalid}))
+                with self.assertRaises(ValueError):
+                    load_npc_factions(game, "valid")
+            path.write_text(json.dumps({k: v for k, v in doc.items() if k != "dialogue_reactions"}))
+            self.assertFalse(matches_character(row, "human", self.alliance, load_npc_factions(game, "valid")))
 
 
 if __name__ == "__main__":

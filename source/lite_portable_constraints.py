@@ -260,6 +260,23 @@ def load_npc_factions(addons, catalog_sha256):
         if any(not re.fullmatch(r"[1-9][0-9]{0,9}", key) or not isinstance(value, str)
                or value not in REACTIONS for key, value in npcs.items()):
             raise ValueError("Update DMSpeaks to repair its NPC faction data.")
+        # Some creatures change reaction temporarily for one encounter. Bind a
+        # dialogue override to its exact giver, event and recorded performance.
+        dialogue_reactions = data.get("dialogue_reactions", [])
+        if not isinstance(dialogue_reactions, list):
+            raise ValueError("Update DMSpeaks to repair its dialogue faction data.")
+        for entry in dialogue_reactions:
+            if not isinstance(entry, dict):
+                raise ValueError("Update DMSpeaks to repair its dialogue faction data.")
+            giver, event = entry.get("npc_id"), entry.get("source_id")
+            digest, reaction = entry.get("stock_sha256"), entry.get("reaction")
+            if (type(giver) is not int or not 1 <= giver <= 9_999_999_999
+                    or not isinstance(event, str) or not 1 <= len(event) <= 256
+                    or not isinstance(digest, str) or not re.fullmatch("[0-9a-f]{64}", digest)
+                    or not isinstance(reaction, str) or reaction not in REACTIONS
+                    or (giver, event, digest) in npcs):
+                raise ValueError("Update DMSpeaks to repair its dialogue faction data.")
+            npcs[giver, event, digest] = reaction
         return npcs
     return None
 
@@ -291,7 +308,9 @@ def matches_character(row, race, values, npc_factions=None, *, skyborne_eligibil
             return False
     is_object = row.get("game_object_reference") or (row.get("native_route") or {}).get("giver_type") == "GameObject"
     if npc_factions is not None and not is_object:
-        reaction = npc_factions.get(str(row.get("npc_id")))
+        giver = row.get("npc_id")
+        reaction = npc_factions.get((giver, row.get("source_id"), row.get("stock_sha256")),
+                                    npc_factions.get(str(giver)))
         if reaction not in ("neutral", faction) or reaction in (None, "hostile"):
             return False
     return (("minimum_level" not in row or type(level) is int and level >= row["minimum_level"])
