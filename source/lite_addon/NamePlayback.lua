@@ -365,6 +365,9 @@ local function BuildSequence(entry, clip, fallback, skipRepair, offline)
     local originalCuts
     if not named and not repair and not skipRepair and addon.originalRecordingCuts then
         originalCuts = addon.originalRecordingCuts[entry.storeRevision]
+        if originalCuts and originalCuts.races and not originalCuts.races[choices.race] then
+            originalCuts = nil
+        end
     end
     local sequence = named and (named.sequence or named) or entry.sequence
     for index, part in ipairs(sequence) do

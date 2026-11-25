@@ -234,7 +234,7 @@ header div p { margin-bottom: .15rem; }
   position: absolute; clip-path: inset(50%); inline-size: 1px; block-size: 1px; overflow: hidden; white-space: nowrap; padding: 0; margin: 0;
 }
 #character-search { min-inline-size: 0; font-size: .94rem; }
-.character-sync { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .6rem; }
+.character-sync { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .6rem; margin-block-start: .6rem; }
 .current-character { font-size: .89rem; margin-block: .6rem; }
 #refresh-character { font-size: .84rem; padding: .35rem .55rem; }
 #character-sync-hint, #character-sync-status { font-size: .84rem; margin: .35rem 0 .55rem; color: var(--soft); }
@@ -260,6 +260,7 @@ header div p { margin-bottom: .15rem; }
 #search-status, #roster-status { margin: .4rem 0; font-size: .84rem; }
 #name-fetch { padding: clamp(1rem, 2.5vw, 1.65rem); }
 .selected-character { display: flex; gap: .85rem; align-items: center; padding-block-end: 1rem; margin-block-end: 1rem; border-block-end: 1px solid var(--line); }
+#remove-profiles { margin-block-start: .65rem; }
 #remove-profile { margin-inline-start: auto; }
 #removed-profiles { margin-block-start: .85rem; }
 #removed-profile-list { list-style: none; padding: 0; margin-block: .65rem 0; }
