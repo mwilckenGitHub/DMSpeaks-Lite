@@ -9,9 +9,11 @@ import re
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 _PIN_FILE = Path(__file__).with_name("formats") / "spoken-caption-digests.json"
 _PIN_FILE_SHA256 = "3abc6f0ef4b084eb526be0c7c25f532365d94bdd5ebee0799c871a1434c39f08"
-_GUARDS = (
-    b"if not VoiceOver or not VoiceOver.DataModules then return end",
+_MODULE_GUARD = b"if not VoiceOver or not VoiceOver.DataModules then return end"
+_LANGUAGE_GUARDS = (
     b'if not VoiceOver.Language or VoiceOver.Language:GetClientLanguage() ~= "enUS" then return end',
+    b'if not VoiceOver.Language or (VoiceOver.Language.GetTextLanguage and '
+    b'VoiceOver.Language:GetTextLanguage() or VoiceOver.Language:GetClientLanguage()) ~= "enUS" then return end',
 )
 # This is the data syntax written by Spoken's exporter. Anchoring each whole
 # line also rules out trailing statements, expressions, and alternate keys.
@@ -35,8 +37,8 @@ def generated_captions(content, pack):
     # ordinary text inside a quoted caption.
     lines = [line for raw in content.replace(b"\r\n", b"\n").split(b"\n")
              if (line := raw.strip(b" \t"))]
-    header = (*_GUARDS, pack.encode("ascii") + b".TextByFileName = {")
-    if tuple(lines[:3]) != header or lines[-1:] != [b"}"]:
+    if (len(lines) < 4 or lines[0] != _MODULE_GUARD or lines[1] not in _LANGUAGE_GUARDS
+            or lines[2] != pack.encode("ascii") + b".TextByFileName = {" or lines[-1] != b"}"):
         raise ValueError("The installed Spoken text table has an unfamiliar format.")
     captions = {}
     for index, line in enumerate(lines[3:-1], start=3):

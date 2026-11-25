@@ -4,7 +4,7 @@ local core = SpokenEnv
 local quests = VoiceOver
 
 local function SupportedSpokenVersion(version)
-    return version == "3.8.7" or version == "3.9.0" or version == "3.10.0" or version == "3.10.1"
+    return version == "3.8.7" or version == "3.9.0" or version == "3.10.0" or version == "3.10.1" or version == "3.13.0"
 end
 
 local function HasMethods(owner, ...)

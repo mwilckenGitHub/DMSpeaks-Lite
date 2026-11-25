@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 import lite_paced_name as paced
+from lite_stock_text import generated_captions
 
 
 class ExactStockSelection(unittest.TestCase):
@@ -56,3 +57,18 @@ class ExactStockSelection(unittest.TestCase):
         self.seals[str(self.root / "second")]["clock_format"] = paced.EXPANDED_FORMAT
         with self.assertRaisesRegex(ValueError, "expanded-context"):
             paced.require_name_extension(None, self.row, {"seals": self.seals})
+
+class SpokenCaptionFormat(unittest.TestCase):
+    def test_current_language_guard_keeps_caption_parsing_strict(self):
+        table = b"""if not VoiceOver or not VoiceOver.DataModules then return end
+if not VoiceOver.Language or (VoiceOver.Language.GetTextLanguage and VoiceOver.Language:GetTextLanguage() or VoiceOver.Language:GetClientLanguage()) ~= "enUS" then return end
+SpokenQuestsAudioShared.TextByFileName = {
+    ["1-accept"] = "Hello, Adventurer.",
+}
+"""
+        pack = "SpokenQuestsAudioShared"
+        self.assertEqual(generated_captions(table, pack), {"1-accept": "Hello, Adventurer."})
+        with self.assertRaisesRegex(ValueError, "unfamiliar format"):
+            generated_captions(table.replace(b'"enUS"', b'"deDE"'), pack)
+        with self.assertRaisesRegex(ValueError, "unsupported entry"):
+            generated_captions(table.replace(b'"Hello, Adventurer."', b'GetCaption()'), pack)
