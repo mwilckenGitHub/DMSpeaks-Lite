@@ -8,10 +8,10 @@ GPT-6 Codex assisted with development, packaging, and testing.
 
 ## Install on Windows
 
-**Beta 12.7** is the current Windows x64 beta. Run Setup over your existing installation to update. Setup can reuse verified downloads, and updates with matching voice packs skip the full installed-file scan. Maintenance Repair checks every installed file. [Beta 12.7 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.7)
+**Beta 12.8** is the current Windows x64 beta. Run Setup over your existing installation to update. Setup can reuse verified downloads, and updates with matching voice packs skip the full installed-file scan. Maintenance Repair checks every installed file. [Beta 12.8 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.8)
 
 1. Close WoW. Make sure **Spoken** and **Spoken Quests** are installed in World of Warcraft Forever. [Get Spoken](https://www.curseforge.com/wow/addons/spoken)
-2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.7/DMSpeaks-Lite-Setup-Windows-x64.exe)
+2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.8/DMSpeaks-Lite-Setup-Windows-x64.exe)
 3. Review the license and credits, then select your WoW Forever folder if prompted.
 4. On **Choose voice packs**, check **All voice packs** or select **Alliance quests**, **Horde quests**, **Shared quests**, or **Gossip** individually. Use **+** and **−** to browse the folders. Each selected pack includes both of its folders. Setup downloads the common files and the selected packs.
 5. Choose your shortcuts, select **Install**, then select **Finish** to open Lite.
@@ -59,7 +59,7 @@ The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitH
 
 ## Report a problem
 
-For missing dialogue, a wrong word, or a pop, keep the quest or NPC window open in WoW and type `/dmspeaksreport` or right-click the DMSpeaks minimap icon. Open the link the add-on gives you and describe what you heard. For a problem with Setup or fetching, include the Lite version and the steps that reproduce it. [GitHub Issues](https://github.com/mwilckenGitHub/DMSpeaks-Lite/issues)
+For missing dialogue, a wrong word, or a pop, keep the quest or NPC window open in WoW and type `/dmspeaksreport` or right-click the DMSpeaks minimap icon. Open the link the add-on gives you and describe what you heard. For a problem with Setup or fetching, include the version and build from **Help → About DMSpeaks Lite** and the steps that reproduce it. [GitHub Issues](https://github.com/mwilckenGitHub/DMSpeaks-Lite/issues)
 
 ## Support DMSpeaks Lite
 
