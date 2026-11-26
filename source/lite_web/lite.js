@@ -693,6 +693,9 @@ function updateFetchButtons() {
     : unsaved || !saved || setupEdited ? message('saveToFetch')
     : mayBeMetered(engineType(engine.value)) && options.allow_metered !== true ? message('consentNeeded')
     : '');
+  element('open-fetch-setup').hidden = !engine.value || busy || fetchWorking
+    || Boolean(saved && !needsCredential && !unsaved && !setupEdited
+      && (!mayBeMetered(engineType(engine.value)) || options.allow_metered === true));
   element('recording-review').hidden = !gameCharacter;
   recordingReview?.sync();
 }
@@ -929,7 +932,7 @@ async function pollFetch() {
         options = snapshot.options;
         engines = snapshot.engines;
         updateProviderChoices(options.provider_id);
-        coverage.value = options.coverage || 'all';
+        coverage.value = options.coverage;
         tell('coverage-status', '');
         showProvider();
       }
@@ -1031,16 +1034,24 @@ function changeProvider() {
   showProvider();
 }
 
+function openSpeechSettings() {
+  const panel = element('connection-settings');
+  panel.open = true;
+  const heading = panel.querySelector('summary');
+  heading.tabIndex = -1;
+  const credential = setup.elements.api_key;
+  const target = !credential.disabled && !credential.placeholder ? credential : heading;
+  target.focus({preventScroll: true});
+  heading.scrollIntoView({block: 'start'});
+  if (target !== heading) target.scrollIntoView({block: 'nearest'});
+}
+
 engine.addEventListener('change', changeProvider);
+element('open-fetch-setup').addEventListener('click', openSpeechSettings);
 fetchProvider.addEventListener('change', () => {
   engine.value = fetchProvider.value;
   changeProvider();
-  if (!engine.value) return;
-  const panel = element('connection-settings');
-  panel.open = true;
-  panel.querySelector('summary').scrollIntoView({block: 'start'});
-  const credential = setup.elements.api_key;
-  if (!credential.disabled && !credential.placeholder) credential.focus();
+  if (engine.value) openSpeechSettings();
 });
 coverage.addEventListener('change', async () => {
   tell('coverage-status', '');
@@ -1108,7 +1119,7 @@ element('remove-connection').addEventListener('click', async () => {
     profiles = profiles.filter(item => item.id !== profile.id);
     updateProviderChoices(options.provider_id);
     setupEdited = false;
-    coverage.value = options.coverage || 'all';
+    coverage.value = options.coverage;
     showProvider();
     return message('personalProviderRemoved');
   });
@@ -1264,7 +1275,7 @@ async function initialize() {
   const settings = await initialSettings();
   profiles = settings.profiles;
   options = settings.options;
-  coverage.value = options.coverage || 'all';
+  coverage.value = options.coverage;
   setLinkedCharacter(settings.game_character);
   engines = settings.engines;
   const requested = new URLSearchParams(window.location.search).get('provider');

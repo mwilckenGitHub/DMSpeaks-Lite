@@ -575,41 +575,38 @@ def install(wow, archive, delta=None, *, repair=False, progress_window=0, deskto
             retired = [path for path, hashes in stock_inventory()["retired"].items()
                        if installed_digest(addons, path, checked, []) in hashes]
             if existing and delta is not None and not repair:
-                checking = phase("Checking the installed add-on", start, 32)
-                checking(0, 1)
+                checking = repair_progress(phase("Checking the installed add-on", start, 32))
                 with installed_beta_update(addons, delta, checking) as update:
                     if update is not None:
                         source, entries = update
                         if entries or retired:
-                            updates = phase("Preparing WoW updates", 40, 92, files=True)
+                            updates = repair_progress(phase("Preparing WoW updates", 40, 92, files=True))
                             state = stage_update(addons, work, source, entries, group_folders=True, progress=updates)
+                            if repair_cancel is not None:
+                                repair_cancel(before_apply=True)
                             state["retired"] = retired
                             apply_update(addons, work, marker, state, finishing)
                         else:
                             print("DMSpeaks add-on files are up to date.", flush=True)
                         return
                 start = 32
-            checking = phase("Checking the voice package", start, 40)
-            if repair:
-                checking = repair_progress(checking)
-            else:
-                checking(0, 1)
+            checking = repair_progress(phase("Checking the voice package", start, 40))
             with checked_archive(archive, checking) as (source, entries):
                 if existing or retired:
                     if repair:
                         progress = repair_progress(stage_progress(progress_window, "Checking installed voices", 40, 92))
                         finishing = stage_progress(progress_window, "Installing WoW voices", 92, 97)
                     else:
-                        progress = phase("Checking installed voice files", 40, 92, files=True)
+                        progress = repair_progress(phase("Checking installed voice files", 40, 92, files=True))
                     state = stage_update(addons, work, source, entries, group_folders=True, progress=progress)
                     if repair_cancel is not None:
                         repair_cancel(before_apply=True)
                     state["retired"] = retired
                     apply_update(addons, work, marker, state, finishing)
                 else:
+                    extract_archive(source, entries, incoming, repair_progress(progress))
                     if repair_cancel is not None:
                         repair_cancel(before_apply=True)
-                    extract_archive(source, entries, incoming, progress)
                     state = {"existing": [], "committed": False}
                     finishing(0, len(ROOTS))
                     write_marker(marker, state)
@@ -1209,8 +1206,6 @@ if __name__ == "__main__":
         operation.add_argument("--remove-saved-names", action="store_true", help=SUPPRESS)
         operation.add_argument("--uninstall", type=Path, metavar="INSTALLED_FILE_LIST")
         args = parser.parse_args()
-        if args.repair_cancel_window and not args.repair:
-            parser.error("Repair cancellation requires --repair.")
         wow = args.wow_folder.resolve()
         if args.remove_game_markers:
             remove_game_markers(wow)
@@ -1234,7 +1229,7 @@ if __name__ == "__main__":
                     repair_cancel=repair_window_cancellation(args.repair_cancel_window))
             print("DMSpeaks add-on and audio installed.", flush=True)
     except RepairCancelled:
-        print("Repair canceled. No staged files were applied.", flush=True)
+        print("Canceled. No staged WoW files were applied.", flush=True)
         sys.exit(4)
     except PlacementInUse as error:
         print(str(error), flush=True)

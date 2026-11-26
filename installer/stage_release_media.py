@@ -66,7 +66,7 @@ def download(url, target, record, progress=None):
 
 
 def obtain(name, selected, cache, release, progress=None):
-    """Check an adjacent or cached archive before downloading it."""
+    """Check adjacent files and verified caches from other builds before downloading."""
     record = release["files"][name]
     cached = cache / name
     if progress:
@@ -77,6 +77,15 @@ def obtain(name, selected, cache, release, progress=None):
         return selected
     if matches(cached, record):
         return cached
+    if re.fullmatch(r"[a-f0-9]{64}", cache.name):
+        # Setup revisions change even when their media is byte-for-byte identical.
+        for directory in cache.parent.glob("*"):
+            if (directory == cache or not re.fullmatch(r"[a-f0-9]{64}", directory.name)
+                    or directory.is_symlink() or not directory.is_dir()):
+                continue
+            candidate = directory / name
+            if matches(candidate, record):
+                return candidate
     base = release.get("download_base")
     if not base:
         raise ValueError(f"Put {name} beside Setup.")

@@ -22,12 +22,21 @@ ROOT = Path(__file__).resolve().parents[2]
 MEDIA = "DMSpeaks-Lite-Name-Data.zip"
 MEDIA_MEMBERS = ("embedded-catalog.zip", "prefix-data.zip")
 MEDIA_PROGRESS_END = 20  # Leave five points for program extraction before voice placement.
+PUBLISHED_MEDIA_SET = "bf55a534b9614b7d35b6eb8908dd2ad9d9ddb60eeff06ce25c4d17cbb600058e"
+PUBLISHED_MEDIA_REVISIONS = (
+    "00b55336d1d230dfc57929841c89f400bcbbc456b282188bf4110452ee24695c",
+    "b950255daed4777835ba8504292fc7a6f48d194aecd50268c7cf3e1986313bca",
+    "e95791812f9fc5a8d65661e292f8b984436dc2fb18852b50afbccb0dc6e30c71",
+    "920c076ccd6e574e8d164cb6b9d3c260979e0c33b1a8515ec518803c246e96b2",
+)
 
 # These earlier Setup builds share the same runtime directory.
 COMPATIBLE_DESKTOP_BUILDS = {
     "76d402a54a15946b6bfc0f39ace41f1474fd9ecde1e9f6a9c3bc251c98880a7d",
     "a2f530f564611eab49ada40afe28d9a1770d892b661d876c5bea809dbfdd390f",
     "8808f1fe1ee73bf24f9cf649d9b5d57bac8f83c72200941efad4445511e516a4",
+    "69bc7900f1bc26a7b0b696a880764214a7865314e616d2b66032d8d983118c95",
+    "8382753af1be0cdf33ae2bba2ac9db9988cbba5859af0bc6ae737f087e61c58b",
 }
 
 
@@ -39,7 +48,7 @@ def write_json(path, data):
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def update_program(payload, support, work, previous):
+def update_program(payload, support, work, previous, *, prior_desktop=None):
     """Refresh the packaged UI and regenerate its verification records."""
     source = payload / "source"
     source_root = ROOT / "source"
@@ -47,8 +56,12 @@ def update_program(payload, support, work, previous):
     paths = [path.relative_to(source) for path in source.glob("lite_web/*.png")]
     paths.extend(path.relative_to(source) for path in source.glob("lite_addon/Icons/*.tga"))
     paths.extend(Path(name) for name in (
+        "english_name_pronunciation.py",
         "lite_addon/Settings.lua",
         "lite_game_ingress.py",
+        "lite_name_settings.py",
+        "lite_portable_constraints.py",
+        "lite_portable_inputs.py",
         "lite_web/card-menu.js",
         "lite_web/desktop-help.js",
         "lite_web/index.html",
@@ -56,6 +69,9 @@ def update_program(payload, support, work, previous):
         "lite_web/lite.js",
         "lite_web/locale.js",
         "lite_web/menu-help-en.js",
+        "lite_web/recording-review.js",
+        "name_placeholder_audio.py",
+        "wow_fetch_desktop.py",
     ))
     for relative in sorted(paths):
         path = source / relative
@@ -93,9 +109,10 @@ def update_program(payload, support, work, previous):
     for name in ("Prepared-dialogue-plans.sha256", "Prepared-paced-deliveries.json"):
         if (payload / name).is_file():
             fingerprint.update(name.encode("ascii") + b"\0" + bytes.fromhex(native.digest(payload / name)))
-    manifest["compatible_builds"] = sorted(
-        set(manifest["compatible_builds"]) | COMPATIBLE_DESKTOP_BUILDS | {manifest["after"]}
-    )
+    compatible = set(manifest["compatible_builds"]) | COMPATIBLE_DESKTOP_BUILDS | {manifest["after"]}
+    if prior_desktop:
+        compatible.add(prior_desktop)
+    manifest["compatible_builds"] = sorted(compatible)
     manifest["after"] = fingerprint.hexdigest()
     with ZipFile(refresh, "x", compression=ZIP_DEFLATED) as archive:
         archive.writestr("update.json", json.dumps(manifest, sort_keys=True))
@@ -129,13 +146,16 @@ def page(target, files):
     return target
 
 
-def update_game_ownership(support, work, placement, settings):
+def update_game_ownership(support, work, placement, settings, *, previous_settings=None):
     original = support / "stock-files.json.gz"
     inventory = json.loads(gzip.decompress(original.read_bytes()))
     settings_hashes = inventory["current"]["DMSpeaksLite/Settings.lua"]
-    settings_hash = native.digest(settings)
-    if settings_hash not in settings_hashes:
-        settings_hashes.append(settings_hash)
+    admitted = [native.digest(settings)]
+    if previous_settings is not None:
+        admitted.append(previous_settings)
+    for settings_hash in admitted:
+        if settings_hash not in settings_hashes:
+            settings_hashes.append(settings_hash)
     target = work / original.name
     target.write_bytes(gzip.compress(json.dumps(inventory, sort_keys=True).encode(), mtime=0))
     text = placement.read_text(encoding="utf-8")
@@ -150,6 +170,23 @@ def build(args):
     receipt = args.previous / "verified.json"
     native.require(receipt, args.previous_sha256)
     previous = native.read(receipt)
+    reuse = None
+    previous_settings = None
+    media_revisions = ()
+    if args.reuse_media:
+        media_receipt = args.reuse_media / "verified.json"
+        native.require(media_receipt, args.reuse_media_sha256)
+        reuse = native.read(media_receipt)
+        expected = reuse["media"]["files"]
+        if set(expected) != {native.GAME, MEDIA, *PACK_ROOTS}:
+            raise ValueError("The prior release does not describe the complete media set.")
+        actual = {name: record(args.reuse_media / "Install files" / name) for name in expected}
+        if actual != expected:
+            raise ValueError("The local media archives differ from the verified release.")
+        fingerprint = sha256(json.dumps(expected, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        media_revisions = PUBLISHED_MEDIA_REVISIONS if fingerprint == PUBLISHED_MEDIA_SET else (reuse["cleanup_revision"],)
+        with ZipFile(args.reuse_media / "Install files" / native.GAME) as game:
+            previous_settings = sha256(game.read("DMSpeaksLite/Settings.lua")).hexdigest()
     files = args.previous / "Install files"
     for name in (native.BASE_SETUP, native.GAME):
         native.require(files / name, previous["files"][name]["sha256"])
@@ -173,16 +210,23 @@ def build(args):
         native.require(support / MEDIA_MEMBERS[0], previous["transport"]["embedded_catalog_zip_sha256"])
         prefix_hash = native.read(native.HISTORY / "shipping-readback.json")["prefix_sha256"]
         native.require(support / MEDIA_MEMBERS[1], prefix_hash)
-        refresh, icon, ownership, pruner, build_id = update_program(payload, support, work, previous)
-        with ZipFile(product / MEDIA, "x", compression=ZIP_STORED) as archive:
-            for name in MEDIA_MEMBERS:
-                archive.write(support / name, name)
+        refresh, icon, ownership, pruner, build_id = update_program(
+            payload, support, work, previous, prior_desktop=(reuse or {}).get("desktop_build"))
         settings_file = ROOT / "source/lite_addon/Settings.lua"
-        split_game(files / native.GAME, product, settings_file)
-        info = {"files": {name: record(product / name) for name in (native.GAME, MEDIA, *PACK_ROOTS)}}
+        if reuse:
+            info = {"files": expected}
+        else:
+            with ZipFile(product / MEDIA, "x", compression=ZIP_STORED) as archive:
+                for name in MEDIA_MEMBERS:
+                    archive.write(support / name, name)
+            split_game(files / native.GAME, product, settings_file)
+            info = {"files": {name: record(product / name) for name in (native.GAME, MEDIA, *PACK_ROOTS)}}
         placement = placement_script(support / "install_addon.py", work / "install_addon.py",
-                                     {name: info["files"][name]["sha256"] for name in (native.GAME, *PACK_ROOTS)})
-        stock = update_game_ownership(support, work, placement, settings_file)
+                                     {name: info["files"][name]["sha256"] for name in (native.GAME, *PACK_ROOTS)},
+                                     settings_overlay=settings_file.read_bytes() if reuse else None,
+                                     media_revisions=media_revisions)
+        stock = update_game_ownership(support, work, placement, settings_file,
+                                      previous_settings=previous_settings)
         if args.media_tag:
             info["download_base"] = ("https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/"
                                      + args.media_tag)
@@ -191,7 +235,7 @@ def build(args):
         setup_sources = (*native.SETUP_SOURCES, "VoicePackPage.nsh")
         staging = ROOT / "installer/stage_release_media.py"
         progress = ROOT / "installer/setup_media_progress.py"
-        setup_inputs = (media, ownership, pruner, staging, progress,
+        setup_inputs = (media, placement, stock, ownership, pruner, staging, progress,
                         *(ROOT / "installer" / name for name in setup_sources))
         setup_id = sha256("".join(native.digest(path) for path in setup_inputs).encode("ascii")).hexdigest()
         recipe = work / "installer"
@@ -217,6 +261,7 @@ def build(args):
         native.require(agreement, previous["end_user_agreement"]["EULA.md"])
         settings = dict(
             SETUP_ID=setup_id, ICON=icon, OUTPUT=product / native.BASE_SETUP,
+            RELEASE_VERSION="0.1.0-beta.12.8",
             BUILD=previous["registered_build"], PAYLOAD=payload, PAYLOAD_COMMANDS=includes,
             MAINTENANCE_PYTHON_FILES=python, RUNTIME_PRUNER=pruner, RUNTIME_OWNERS=ownership,
             END_USER_AGREEMENT=page(recipe / "agreement.txt", [agreement]),
@@ -259,9 +304,13 @@ if __name__ == "__main__":
     for name in ("previous", "tools", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--previous-sha256", required=True)
+    parser.add_argument("--reuse-media", type=Path, help="Verified release folder containing the existing ZIPs")
+    parser.add_argument("--reuse-media-sha256", help="SHA-256 of the existing release receipt")
     parser.add_argument("--media-tag", "--release-tag", dest="media_tag",
                         help="Public GitHub release tag hosting the matching media ZIPs")
     args = parser.parse_args()
+    if args.reuse_media and not (args.reuse_media_sha256 and args.media_tag):
+        parser.error("--reuse-media requires --reuse-media-sha256 and --media-tag")
     if args.media_tag and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.media_tag):
         parser.error("Use a simple GitHub media release tag.")
     build(args)

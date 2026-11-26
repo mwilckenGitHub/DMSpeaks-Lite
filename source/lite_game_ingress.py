@@ -1224,9 +1224,9 @@ class GameIngress:
 
     def options(self, data=None):
         if data is None:
-            return self.app.store.setting(OPTIONS, {})
+            return {"coverage": DEFAULTS["coverage"], **self.app.store.setting(OPTIONS, {})}
         provider, metered = (data.get(field) for field in ("provider_id", "allow_metered"))
-        coverage = data.get("coverage", "all")
+        coverage = data.get("coverage", DEFAULTS["coverage"])
         if (not self.known_provider(provider)
                 or coverage not in ("starting-area", "route", "all") or type(metered) is not bool):
             raise ValueError("Choose a valid provider and fetch coverage.")

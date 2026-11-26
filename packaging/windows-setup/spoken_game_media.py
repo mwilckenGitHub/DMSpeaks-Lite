@@ -62,6 +62,42 @@ class ReleaseGameArchive:
         return self.entries[info.filename][0].extract(info, destination)
 
 
+def reused_media_entries(addons, entries, revision, progress):
+    """Update the program-owned overlay without rescanning a completed media installation."""
+    if RELEASE_SETTINGS is None or not revision:
+        return None
+    marker = addons.parent / ".dmspeaks-setup-version.txt"
+    if is_link(marker) or not marker.is_file() or marker.stat().st_size > 80:
+        return None
+    recorded = marker.read_text(encoding="ascii", errors="replace").strip()
+    if recorded not in (*RELEASE_MEDIA_REVISIONS, revision):
+        return None
+    # A completed install is the evidence that individual voice files were
+    # placed. Check each selected pack, the indexes, and the catalog before
+    # taking the fast path. Repair retains the full per-file scan.
+    settings = PurePosixPath("DMSpeaksLite/Settings.lua")
+    probes, representatives, overlay = [], {}, []
+    for info, relative in entries:
+        if relative == settings:
+            overlay.append((info, relative))
+        elif relative.suffix == ".toc" or relative == CATALOG or relative.name == "DialogueIndex.lua":
+            probes.append((info, relative))
+        elif relative.suffix == ".ogg":
+            representatives.setdefault(relative.parts[0], (info, relative))
+    probes.extend(representatives.values())
+    checked, missing = {addons}, []
+    for index, (info, relative) in enumerate(probes, 1):
+        progress(index - 1, len(probes))
+        path = addons / relative
+        ensure_regular_folder(path.parent, addons, checked, missing)
+        info_at_path = plain_path(path)
+        if (info_at_path is None or not S_ISREG(info_at_path.st_mode)
+                or not matches_archive(path, info, info_at_path.st_size)):
+            return None
+    progress(len(probes), len(probes))
+    return overlay
+
+
 @contextmanager
 def release_archive_parts(game, catalog, manifest):
     paths = json.loads(manifest.read_bytes())
@@ -86,13 +122,23 @@ def release_archive_parts(game, catalog, manifest):
             allowed = RELEASE_PACK_ROOTS[name]
             sources.append((open_part(Path(path), RELEASE_HASHES[name]), allowed))
             roots.extend(allowed)
-        yield ReleaseGameArchive(sources, roots)
+        release = ReleaseGameArchive(sources, roots)
+        if RELEASE_SETTINGS is not None:
+            from io import BytesIO
+
+            name = "DMSpeaksLite/Settings.lua"
+            if name not in release.entries:
+                raise ValueError("The verified Lite archive is missing its settings file.")
+            replacement = stack.enter_context(ZipFile(BytesIO(), "w"))
+            replacement.writestr(name, RELEASE_SETTINGS)
+            release.entries[name] = (replacement, replacement.getinfo(name))
+        yield release
 
 
 '''
 
 
-def placement_script(source, output, hashes):
+def placement_script(source, output, hashes, *, settings_overlay=None, media_revisions=()):
     text = source.read_text(encoding="utf-8")
 
     def replace(before, after):
@@ -102,7 +148,8 @@ def placement_script(source, output, hashes):
         text = text.replace(before, after, 1)
 
     replace("class SplitGameArchive:", f"RELEASE_HASHES = {hashes!r}\n"
-            f"RELEASE_CORE_ROOTS = {CORE_ROOTS!r}\nRELEASE_PACK_ROOTS = {PACK_ROOTS!r}\n\n\n"
+            f"RELEASE_CORE_ROOTS = {CORE_ROOTS!r}\nRELEASE_PACK_ROOTS = {PACK_ROOTS!r}\n"
+            f"RELEASE_SETTINGS = {settings_overlay!r}\nRELEASE_MEDIA_REVISIONS = {media_revisions!r}\n\n\n"
             + PARTS + "class SplitGameArchive:")
     replace("for name in reversed(ROOTS):", 'for name in reversed(state.get("roots", ROOTS)):')
     replace("def checked_archive(archive, progress=None, *, catalog=None):",
@@ -124,22 +171,50 @@ def placement_script(source, output, hashes):
             + body.replace("set(ROOTS)", "set(expected)").replace("for name in ROOTS", "for name in expected")
             .replace("yield source, entries", "return entries"))
     text = text[:start] + body + text[end:]
-    replace("repair_cancel=None, catalog=None):", "repair_cancel=None, catalog=None, packs=None):")
+    replace("repair_cancel=None, catalog=None):",
+            "repair_cancel=None, catalog=None, packs=None, setup_revision=None):")
+    replace('            checking = phase("Checking the voice package", start, 40)\n'
+            '            if repair:\n                checking = repair_progress(checking)\n'
+            '            else:\n                checking(0, 1)',
+            '            checking = repair_progress(phase("Checking the voice package", start, 40))')
+    replace('                        progress = phase("Checking installed voice files", 40, 92, files=True)',
+            '                        progress = repair_progress(phase("Checking installed voice files", 40, 92, files=True))')
+    replace('                else:\n                    if repair_cancel is not None:\n'
+            '                        repair_cancel(before_apply=True)\n                    extract_archive(source, entries, incoming, progress)',
+            '                else:\n                    extract_archive(source, entries, incoming, repair_progress(progress))\n'
+            '                    if repair_cancel is not None:\n                        repair_cancel(before_apply=True)')
+    replace('        if args.repair_cancel_window and not args.repair:\n'
+            '            parser.error("Repair cancellation requires --repair.")\n', '')
+    replace('print("Repair canceled. No staged files were applied.", flush=True)',
+            'print("Canceled. No staged WoW files were applied.", flush=True)')
     replace("with checked_archive(archive, checking, catalog=catalog) as (source, entries):",
             "with checked_archive(archive, checking, catalog=catalog, packs=packs) as (source, entries):\n"
             "                selected_roots = source.roots if packs else ROOTS\n"
             "                if packs:\n"
-            "                    retired = [p for p in retired if p.split('/', 1)[0] in selected_roots]")
+            "                    retired = [p for p in retired if p.split('/', 1)[0] in selected_roots]\n"
+            "                if packs and existing and not repair and not retired:\n"
+            '                    checking_media = repair_progress(phase("Checking installed packs", 40, 88))\n'
+            "                    reused = reused_media_entries(addons, entries, setup_revision, checking_media)\n"
+            "                    if reused is not None:\n"
+            '                        updating = repair_progress(phase("Updating the WoW add-on", 88, 92))\n'
+            "                        state = stage_update(addons, work, source, reused, group_folders=True, progress=updating)\n"
+            "                        if repair_cancel is not None:\n"
+            "                            repair_cancel(before_apply=True)\n"
+            "                        apply_update(addons, work, marker, state, finishing)\n"
+            '                        print("Kept the installed voice packs.", flush=True)\n'
+            "                        return")
     replace('state = {"existing": [], "committed": False}', 'state = {"existing": [], "committed": False, "roots": selected_roots}')
     replace("finishing(0, len(ROOTS))", "finishing(0, len(selected_roots))")
     replace("for index, name in enumerate(ROOTS, 1):", "for index, name in enumerate(selected_roots, 1):")
     replace("finishing(index, len(ROOTS))", "finishing(index, len(selected_roots))")
     replace('        parser.add_argument("--catalog", type=Path, help=SUPPRESS)',
             '        parser.add_argument("--catalog", type=Path, help=SUPPRESS)\n'
+            '        parser.add_argument("--setup-revision", help=SUPPRESS)\n'
             '        parser.add_argument("--release-packs", type=Path, help=SUPPRESS)')
     replace("catalog=args.catalog.resolve() if args.catalog else None)",
             "catalog=args.catalog.resolve() if args.catalog else None,\n"
-            "                    packs=args.release_packs.resolve() if args.release_packs else None)")
+            "                    packs=args.release_packs.resolve() if args.release_packs else None,\n"
+            "                    setup_revision=args.setup_revision)")
     compile(text, "install_addon.py", "exec")
     output.write_text(text, encoding="utf-8", newline="\n")
     return output

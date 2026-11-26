@@ -8,7 +8,7 @@ PREFS = "lite_player_name_preferences"
 # Separate from the fetch worker's preference record, which is updated on game events.
 RECORDING_PLAYBACK = "lite_recording_playback_enabled"
 DEFAULTS = dict(provider_id=None, progress="bar", keep_raw_wav=False,
-                wav_storage_notice_seen=False, character_id=None, coverage="all")
+                wav_storage_notice_seen=False, character_id=None, coverage="starting-area")
 
 
 def preferences(data, previous=None):

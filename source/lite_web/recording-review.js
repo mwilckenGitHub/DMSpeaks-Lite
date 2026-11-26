@@ -8,6 +8,7 @@ recordingReview = (() => {
   const playContext = element('review-play-context');
   const player = element('review-player');
   const replace = element('review-replace');
+  const report = element('review-report');
   const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('dmspeaks-recording-playback') : null;
   const pageSize = 12;
   let enabled = typeof recordingPlaybackPreference === 'boolean' && recordingPlaybackPreference;
@@ -44,6 +45,7 @@ recordingReview = (() => {
     playContext.hidden = !enabled || !item;
     playContext.disabled = playContext.hidden || audioMode === 'context';
     replace.disabled = !item || Boolean(listRequest) || element('fetch-names').disabled;
+    report.disabled = !item || Boolean(listRequest);
     element('review-previous').hidden = !offset;
     element('review-next').hidden = offset + items.length >= total;
     element('review-reload').hidden = !section.open || !gameCharacter;
@@ -275,6 +277,23 @@ recordingReview = (() => {
   replace.addEventListener('click', () => {
     const item = selected();
     if (isCurrent(item)) void fetchAction('start', item);
+  });
+  report.addEventListener('click', () => {
+    const item = selected();
+    if (!item || !section.open || scope !== profileKey() || report.disabled) return;
+    const issue = new URL(liteIssueURL);
+    const version = document.querySelector('meta[name="lite-version"]').content;
+    issue.searchParams.set('title', 'Saved recording problem');
+    issue.searchParams.set('body', [
+      'What sounded wrong?',
+      '',
+      'What did you expect to hear?',
+      '',
+      'Recording slot: ' + item.slot,
+      'Recording SHA-256: ' + item.sha256,
+      'DMSpeaks Lite: ' + version,
+    ].join('\n'));
+    window.open(issue.href, '_blank', 'noopener,noreferrer');
   });
   element('review-previous').addEventListener('click', () => { void loadPage(Math.max(0, offset - pageSize), true); });
   element('review-next').addEventListener('click', () => { void loadPage(offset + pageSize, true); });

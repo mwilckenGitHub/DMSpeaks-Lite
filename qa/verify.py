@@ -17,7 +17,7 @@ SUITES = (
     "fetch_restart", "fetch_request_races", "fetch_storage_crash",
     "fetch_source_availability", "fetch_name_retakes", "saved_clip_bounds",
     "skyborne_profiles", "fetch_progress_status", "profile_session", "placeholder_timing",
-    "exact_stock_selection", "ordered_fish_reference",
+    "exact_stock_selection", "ordered_fish_reference", "shared_name_cards",
 )
 
 

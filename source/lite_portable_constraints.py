@@ -194,10 +194,7 @@ def queue_areas(race, coverage, catalog_areas=()):
             raise ValueError("No starting route is available for this race. Choose All Available Dialogues.")
         route = ()
     if coverage in ("starting-area", "route"):
-        selected = route[:1] if coverage == "starting-area" else route
-        # An unknown location is insufficient evidence to exclude a dialogue.
-        # Known local speakers keep their priority and character filters still apply.
-        return (*selected, "rest") if "rest" in catalog_areas else selected
+        return route[:1] if coverage == "starting-area" else route
     # A route with no known location should not run before a named zone.
     return tuple(dict.fromkeys((*route, *AREA_ORDER, *(area for area in catalog_areas if area != "rest"), "rest")))
 

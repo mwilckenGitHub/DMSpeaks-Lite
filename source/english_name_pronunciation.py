@@ -1,4 +1,5 @@
 """English pronunciation additions for names absent from the local CMU dictionary."""
+from contextlib import nullcontext
 import json
 import os
 import re
@@ -71,9 +72,10 @@ def cmu_phones(units):
 
 class _Engine:
     def __init__(self, library, data, bundled):
-        self.dll_directory=(os.add_dll_directory(str(Path(library).parent))
-                            if bundled and os.name=='nt' else None)
-        self.engine = CDLL(library)
+        # Windows keeps each registration until its handle is explicitly closed.
+        directory = os.add_dll_directory(str(Path(library).parent)) if bundled and os.name == 'nt' else nullcontext()
+        with directory:
+            self.engine = CDLL(library)
         self.engine.espeak_Initialize.argtypes = [c_int, c_int, c_char_p, c_int]
         self.engine.espeak_SetVoiceByName.argtypes = [c_char_p]
         self.engine.espeak_TextToPhonemes.argtypes = [POINTER(c_void_p), c_int, c_int]

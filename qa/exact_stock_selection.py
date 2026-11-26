@@ -7,11 +7,21 @@ import unittest
 from unittest.mock import patch
 
 import lite_paced_name as paced
-from lite_portable_inputs import installed_plans, stock_revision_rows
+from lite_portable_inputs import installed_plans, stock_revision_rows, verify_name_slots
+from lite_portable_render import name_text
 from lite_stock_text import generated_captions
 
 
 class ExactStockSelection(unittest.TestCase):
+    def test_marked_bare_n_is_replaced_without_sending_the_marker(self):
+        for token in ("Adventurer", "N"):
+            stock = f"Traits, {token}."
+            row = dict(stock_text=stock, context=[0, len(stock)], slot=[8, 8 + len(token)],
+                       source_cut=[10, 20], samples=40, leading_word=None)
+            with self.subTest(token=token):
+                verify_name_slots(row)
+                self.assertEqual(name_text(row, "Dalamithiah"), ("Traits, Dalamithiah.", (8, 19)))
+
     def setUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

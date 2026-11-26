@@ -12,6 +12,9 @@ local english = {
     desktopControls = "Open DMSpeaks Lite from the Windows Start menu to manage fetching.",
     syncCharacter = "Reload UI to sync character",
     syncCharacterHint = "If Lite shows another character, use this button or type /reload in WoW.",
+    reportProblem = "Report a Problem",
+    reportMinimap = "Right-click to report a dialogue problem.",
+    reportCopy = "Copy this link and open it in a browser to report a problem with DMSpeaks Lite.",
     newCharacterSync = "Reload the WoW UI to make {name} available in DMSpeaks Lite. To do this later, type /reload in chat.",
     settings = "Fetch Settings",
     refresh = "Check Lite Connection",
@@ -292,9 +295,97 @@ local function OpenSettings()
     if category then Settings.OpenToCategory(category:GetID()) end
 end
 
+local issueURL = "https://github.com/mwilckenGitHub/DMSpeaks-Lite/issues/new"
+local reportDialog = "DMSPEAKS_LITE_REPORT"
+local reportLink
+
+local function QueryValue(value)
+    return (value:gsub("[^a-zA-Z0-9_.~-]", function(char)
+        return string.format("%%%02X", char:byte())
+    end))
+end
+
+local function ReportTarget(value)
+    if type(value) ~= "string" then return end
+    local quest, stage = value:match("^quest/(%d+)/(%l+)$")
+    if quest and (stage == "accept" or stage == "progress" or stage == "complete") then return value end
+    if value:match("^npc/%d+$") or value:match("^object/%d+$") then return value end
+end
+
+local function ReadReportTarget(method, reporter, clip)
+    if type(method) ~= "function" then return end
+    local ok, value = pcall(method, reporter, clip)
+    if ok then return ReportTarget(value) end
+end
+
+local function ShowProblemReport()
+    local quests = VoiceOver
+    local reporter = quests and quests.ReportButton
+    local target = reporter and ReadReportTarget(reporter.CurrentTarget, reporter)
+    if not target and reporter and quests.Player and quests.Player.Current then
+        target = ReadReportTarget(reporter.TargetForClip, reporter, quests.Player:Current())
+    end
+    if not target and GetQuestID then
+        local stage = QuestFrameRewardPanel and QuestFrameRewardPanel:IsVisible() and "complete"
+            or QuestFrameProgressPanel and QuestFrameProgressPanel:IsVisible() and "progress"
+            or QuestFrameDetailPanel and QuestFrameDetailPanel:IsVisible() and "accept"
+        if stage then
+            local id = GetQuestID()
+            if Spoken and Spoken.NotSecret then id = Spoken.NotSecret(id) end
+            if type(id) == "number" and id > 0 then target = ("quest/%d/%s"):format(id, stage) end
+        end
+    end
+    local metadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    local version = metadata and metadata("DMSpeaksLite", "Version") or "unknown"
+    local _, build = GetBuildInfo()
+    local title = target and ("Dialogue problem (" .. target .. ")") or "DMSpeaks Lite problem"
+    local fields = {
+        "What happened? (For example, missing dialogue or the wrong audio.)\n\n",
+        "What did you expect to hear?\n\n",
+        "Dialogue: " .. (target or "Enter the quest or NPC name here."),
+        "DMSpeaks Lite add-on: " .. version,
+        "WoW build: " .. (build or "unknown"),
+        "Game language: " .. locale,
+    }
+    local url = issueURL .. "?title=" .. QueryValue(title) .. "&body=" .. QueryValue(table.concat(fields, "\n"))
+    if Spoken and Spoken.ShowContribution and Spoken:ShowContribution(url, nil, true) then return end
+    if StaticPopup_Show then
+        reportLink = url
+        StaticPopup_Show(reportDialog)
+    end
+end
+
+if StaticPopupDialogs then
+    StaticPopupDialogs[reportDialog] = {
+        text = Text("reportCopy"), button1 = CLOSE,
+        timeout = 0, whileDead = true, hideOnEscape = true,
+        hasEditBox = true, editBoxWidth = 280,
+        OnShow = function(dialog)
+            local editBox = dialog.editBox or _G[dialog:GetName() .. "EditBox"]
+            if not editBox then return end
+            editBox:SetMaxLetters(0)
+            editBox:SetText(reportLink)
+            editBox:SetFocus()
+            editBox:HighlightText()
+        end,
+        EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
+    }
+end
+
+if SlashCmdList then
+    SLASH_DMSPEAKSLITEREPORT1 = "/dmspeaksreport"
+    SlashCmdList.DMSPEAKSLITEREPORT = ShowProblemReport
+end
+
+local function MinimapClick(_, button)
+    if button == "RightButton" then ShowProblemReport()
+    else OpenSettings() end
+end
+
 local function MinimapTooltip(tooltip)
     tooltip:AddLine(Text("brand"))
     tooltip:AddLine(Text("minimapTooltip"), 1, 1, 1)
+    tooltip:AddLine(Text("reportMinimap"), 1, 1, 1)
 end
 
 local function CreateMinimapButton(texture, angle, coords)
@@ -319,7 +410,8 @@ local function CreateMinimapButton(texture, angle, coords)
     face:SetPoint("TOPLEFT", 7, -6)
     face:SetTexture(texture)
     face:SetTexCoord(unpack(coords))
-    button:SetScript("OnClick", OpenSettings)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:SetScript("OnClick", MinimapClick)
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         MinimapTooltip(GameTooltip)
@@ -347,7 +439,7 @@ local function SetupMinimap()
         type = "launcher",
         icon = texture,
         iconCoords = coords,
-        OnClick = OpenSettings,
+        OnClick = MinimapClick,
         OnTooltipShow = MinimapTooltip,
     })
     icon:Register("DMSpeaks", minimap, minimapPosition)
@@ -662,6 +754,14 @@ local function Initialize()
         syncButton:SetWidth(math.min(220, available))
         syncHint:SetWidth(available)
     end
+    local reportButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    reportButton:SetSize(220, 24)
+    reportButton:SetPoint("TOPLEFT", syncHint, "BOTTOMLEFT", 0, -8)
+    reportButton:SetText(Text("reportProblem"))
+    reportButton:SetScript("OnClick", ShowProblemReport)
+    resize[#resize + 1] = function(width)
+        reportButton:SetWidth(math.min(220, math.max(1, width - 36)))
+    end
     local displayBody = CreateFrame("Frame", nil, panel)
     displayBody:SetSize(484, 1)
     local prefs = DMSpeaksLiteSettings
@@ -704,7 +804,7 @@ local function Initialize()
         progressLabel:SetJustifyH("LEFT")
         progress:SetWidth(math.min(134, available))
     end
-    AddSection("displayHeading", syncHint, displayBody)
+    AddSection("displayHeading", reportButton, displayBody)
     local ShowGameplayProgress, displayLast = CreateGameplayProgress(displayBody, progress, prefs, resize)
     local contentBody = CreateInstalledContent(panel, resize)
     AddSection("contentHeading", displayLast, contentBody)

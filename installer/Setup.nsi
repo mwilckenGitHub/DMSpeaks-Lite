@@ -20,6 +20,20 @@ InstallColors /windows
 UninstallCaption "$(MaintenanceCaption)"
 
 !define APP_ENTRY "Software\Microsoft\Windows\CurrentVersion\Uninstall\DMSpeaksLite"
+!ifndef RELEASE_VERSION
+!define RELEASE_VERSION "0.1.0-beta.12"
+!endif
+
+!macro WriteMaintenanceShell
+    SetOutPath "${LITE_FOLDER}\Maintenance"
+    ClearErrors
+    File /oname=install_addon.py "${PLACEMENT}"
+    File /oname=stock-files.json.gz "${STOCK_OWNERS}"
+    File /oname=addon-files.txt.gz "${OWNERS}"
+    File /oname=DMSpeaks-Orc.ico "${COMPATIBILITY_ICON}"
+    File /oname=open_lite.py "${OPEN_LITE_SCRIPT}"
+    WriteUninstaller "$OUTDIR\DMSpeaks-Maintenance.exe"
+!macroend
 !define LITE_FOLDER "$LOCALAPPDATA\DMSpeaksLite"
 !define LITE_LAUNCHER "${LITE_FOLDER}\${EDITION}.lnk"
 !define LITE_ICON "${LITE_FOLDER}\Maintenance\DMSpeaks-Maintenance.exe"
@@ -556,6 +570,21 @@ concurrent_install:
     RMDir /r "$2"
 refresh_lite:
     IfFileExists "$1\runtime\python\python.exe" 0 damaged
+    !ifdef EXTERNAL_MEDIA
+        ; The existing install must remain removable if its desktop refresh is interrupted.
+        ${If} $PreviousGameFolder == $INSTDIR
+        ${AndIf} ${FileExists} "${LITE_FOLDER}\Maintenance\DMSpeaks-Maintenance.exe"
+            ReadRegStr $0 HKCU "${APP_ENTRY}" "ActiveBuild"
+            ${If} $0 == "${BUILD}"
+                !insertmacro WriteMaintenanceShell
+                IfErrors maintenance_error
+                !insertmacro RunSupport `"$PLUGINSDIR\cleanup\python.exe" -I -B "$PLUGINSDIR\cleanup\shell_maintenance.py" record "$1" "$INSTDIR\." "$PLUGINSDIR"` $0
+                ${If} $0 != "0"
+                    Goto maintenance_error
+                ${EndIf}
+            ${EndIf}
+        ${EndIf}
+    !endif
     !insertmacro ShowPhase "$(RefreshingProgram)"
     !ifdef EXTERNAL_MEDIA
         !insertmacro ExternalPrefix "$1" $3
@@ -592,12 +621,24 @@ start_lite:
     !insertmacro ShowPhase "$(PreparingVoices)"
     !insertmacro ShowOverall 25 "$(PreparingVoicesPhase)"
     !ifdef EXTERNAL_MEDIA
-        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_addon.py" "$INSTDIR\." "$ArchivePath" --catalog "$PLUGINSDIR\embedded-catalog.zip" --release-packs "$PLUGINSDIR\lite-packs.json" $PlacementOption --progress-window $PhaseBar --desktop-complete'
+        ${If} $PhaseCancel != 0
+            ShowWindow $NativeCancel ${SW_HIDE}
+            ShowWindow $PhaseCancel ${SW_SHOWNA}
+            EnableWindow $PhaseCancel 1
+        ${EndIf}
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_addon.py" "$INSTDIR\." "$ArchivePath" --catalog "$PLUGINSDIR\embedded-catalog.zip" --release-packs "$PLUGINSDIR\lite-packs.json" $PlacementOption --progress-window $PhaseBar --repair-cancel-window $PhaseCancel --setup-revision "${SETUP_ID}" --desktop-complete'
     !else
         File /oname=addon-update.zip "${DELTA}"
         nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$PLUGINSDIR\install_addon.py" "$INSTDIR\." "$EXEDIR\DMSpeaks-WoW.zip" "$PLUGINSDIR\addon-update.zip" $PlacementOption --progress-window $PhaseBar --desktop-complete'
     !endif
     Pop $3
+    !ifdef EXTERNAL_MEDIA
+        Call RestorePhaseCancel
+        ${If} $3 == "4"
+            SetErrorLevel 4
+            Quit
+        ${EndIf}
+    !endif
     StrCmp $3 "0" installed
     StrCmp $3 "5" install_files_in_use
     SetErrorLevel 1
@@ -611,14 +652,7 @@ installed:
     StrCmp $0 "0" 0 cleanup_failed
     !insertmacro ShowPhase "$(FinishingSetup)"
     !insertmacro ShowOverall 97 "$(FinishingSetupPhase)"
-    SetOutPath "${LITE_FOLDER}\Maintenance"
-    ClearErrors
-    File /oname=install_addon.py "${PLACEMENT}"
-    File /oname=stock-files.json.gz "${STOCK_OWNERS}"
-    File /oname=addon-files.txt.gz "${OWNERS}"
-    File /oname=DMSpeaks-Orc.ico "${COMPATIBILITY_ICON}"
-    File /oname=open_lite.py "${OPEN_LITE_SCRIPT}"
-    WriteUninstaller "$OUTDIR\DMSpeaks-Maintenance.exe"
+    !insertmacro WriteMaintenanceShell
     IfErrors maintenance_error
     SetOutPath "$1"
     !insertmacro ShowPhase "$(SettingUpShortcuts)"
@@ -641,7 +675,7 @@ installed:
     !endif
     ClearErrors
     WriteRegStr HKCU "${APP_ENTRY}" "DisplayName" "${EDITION}"
-    WriteRegStr HKCU "${APP_ENTRY}" "DisplayVersion" "0.1.0-beta.12"
+    WriteRegStr HKCU "${APP_ENTRY}" "DisplayVersion" "${RELEASE_VERSION}"
     WriteRegStr HKCU "${APP_ENTRY}" "InstallLocation" "${LITE_FOLDER}"
     WriteRegStr HKCU "${APP_ENTRY}" "DisplayIcon" '"${LITE_ICON}",0'
     WriteRegStr HKCU "${APP_ENTRY}" "CleanupRevision" "${SETUP_ID}"

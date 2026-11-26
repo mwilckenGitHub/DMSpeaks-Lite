@@ -15,8 +15,8 @@
   <script src="/locale.js" defer></script>
   <script src="/tooltips.js" defer></script>
   <script src="/lite.js" defer></script>
-  <script src="/recording-review.js" defer></script>
   <script src="/desktop-help.js" defer></script>
+  <script src="/recording-review.js" defer></script>
   <script src="/card-menu.js" defer></script>
 </head>
 <body>
@@ -95,7 +95,11 @@
             <option value="all" data-msg="allAreas">All available areas</option>
           </select></label>
       </div>
-      <p id="fetch-readiness" role="status"></p>
+      <div id="fetch-setup">
+        <p id="fetch-readiness" role="status"></p>
+        <button id="open-fetch-setup" class="secondary" type="button" aria-controls="connection-settings"
+          data-msg="deskOpenSpeechSettings" hidden>Open speech settings</button>
+      </div>
       <div id="last-coverage" role="status" aria-atomic="true" hidden>
         <h3 data-msg="selectedAreaAudio">Saved name audio in the selected area</h3>
         <p id="coverage-count"></p>
@@ -160,6 +164,7 @@
                 <button id="review-play" type="button" hidden disabled data-msg="deskPlayRecording">Play recording</button>
                 <button id="review-play-context" type="button" hidden disabled data-msg="deskPlayContext">Play in context</button>
                 <button id="review-replace" type="button" disabled data-msg="deskReviewReplace">Replace this recording…</button>
+                <button id="review-report" type="button" disabled data-msg="deskReportProblem">Report a Problem</button>
               </div>
               <audio id="review-player" controls preload="none" hidden></audio>
               <p id="review-readiness" class="help"></p>

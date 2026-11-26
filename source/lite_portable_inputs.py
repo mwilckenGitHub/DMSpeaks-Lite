@@ -323,6 +323,7 @@ def verify_name_slots(row):
                        for slot in slots)):
             raise ValueError("Repeated names require a verified companion and separate Name slots.")
     previous_sample = previous_char = 0
+    text = row["stock_text"]
     for occurrence in name_occurrences(row):
         start, end = occurrence["source_cut"]
         lo, hi = occurrence["context"]
@@ -332,9 +333,14 @@ def verify_name_slots(row):
                                  and ("analysis_base" in row or row.get("requires_paced_base") is True))))
         if (not previous_sample <= start < end <= row["samples"]
                 or ((start, end) == (0, row["samples"]) and not whole_name_phrase)
-                or not 0 <= lo <= left < right <= hi <= len(row["stock_text"])
-                or left < previous_char or row["stock_text"][left:right].casefold() != "adventurer"):
+                or not 0 <= lo <= left < right <= hi <= len(text)
+                or left < previous_char):
             raise ValueError("The prepared Name slot or sample bounds are invalid.")
+        token = text[left:right]
+        marked_name = (token == "N" and (left == 0 or not re.match(r"[\w$]", text[left - 1]))
+                       and (right == len(text) or not re.match(r"\w", text[right])))
+        if token.casefold() != "adventurer" and not marked_name:
+            raise ValueError("The prepared Name slot needs Adventurer or a standalone N marker.")
         previous_sample, previous_char = end, right
         signed_followup = row.get("requires_paced_base") is True and row.get("source_id", "").startswith("f:")
         quest_suffix = SIGNED_QUEST_SUFFIXES.get((row.get("source_id"), row.get("npc_id")))

@@ -148,7 +148,8 @@ header div p { margin-bottom: .15rem; }
 .menu-head[aria-expanded=true], .menu-popup button:focus { background: #494034; }
 .menu-popup { position: absolute; inset-block-start: 100%; inset-inline-start: 0; z-index: 3; background: #292722; padding: .25rem; border: 1px solid #766751; border-radius: .35rem; min-inline-size: 9rem; }
 .menu-group:nth-last-child(-n+2) .menu-popup { inset-inline-start: auto; inset-inline-end: 0; }
-.menu-popup button { display: block; inline-size: 100%; text-align: start; }
+.menu-popup button { display: block; inline-size: 100%; padding: .52rem .85rem; text-align: start; }
+.menu-popup [aria-disabled=true] { opacity: .55; cursor: default; }
 #card-storage label { margin-block: .6rem; }
 #card-dialog-body select { margin-block-start: .6rem; }
 #recording-review { inline-size: min(30rem, calc(100vw - 2rem)); overflow-wrap: anywhere; }
@@ -274,6 +275,11 @@ header div p { margin-bottom: .15rem; }
 .fetch-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .9rem; row-gap: .6rem; margin-block: .65rem; align-items: start; }
 .fetch-fields label { display: block; font-size: .85rem; font-weight: 600; color: var(--soft); }
 #coverage, #fetch-provider { inline-size: 100%; margin: .25rem 0 0; min-block-size: 2.65rem; }
+#fetch-setup:not(:has(p:not(:empty), button:not([hidden]))) { display: none; }
+#fetch-setup { margin-block: .65rem; }
+#open-fetch-setup { margin-block-start: .15rem; }
+#account-form { display: grid; gap: .65rem; }
+#account-form .actions { margin-block: .15rem; }
 #last-coverage { border: 0; margin: .7rem 0; padding: 0; }
 #coverage-count { color: var(--ink); font: 600 1rem/1.4 system-ui,sans-serif; margin: .1rem 0; }
 #coverage-meter { height: .45rem; display: block; margin-block: .25rem; }

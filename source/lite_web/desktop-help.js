@@ -1,5 +1,7 @@
 'use strict';
 
+const liteIssueURL = 'https://github.com/mwilckenGitHub/DMSpeaks-Lite/issues/new';
+
 const desktopHelp = (() => {
   const dialog = element('desktop-help');
   const contents = element('help-content');
@@ -25,6 +27,8 @@ const desktopHelp = (() => {
     ['deskBackup', ['deskBackupOne', 'deskBackupTwo', 'deskBackupThree']],
     ['deskStorage', ['deskStorageOne', 'deskStorageTwo', 'deskStorageThree'], ['deskOpenStorage', 'card-storage']],
     ['deskTrouble', ['deskTroubleOne', 'deskTroubleTwo', 'deskTroubleThree'], ['deskOpenFetch', 'name-fetch']],
+    ['deskReportProblem', ['deskReportDialogue', 'deskReportFetch',
+      ['a', 'deskOpenIssue', liteIssueURL]]],
     ['deskKeyboard', ['deskKeyboardOne', 'deskKeyboardTwo']],
     ['deskAbout', ['deskAboutText']],
   ];

@@ -96,11 +96,14 @@ class SkyborneEligibility(unittest.TestCase):
             self.assertEqual(load_name_areas(addons, "old", [self.row]), {})
             self.assertEqual(load_name_areas(addons, "valid", []), {})
 
-    def test_unknown_locations_stay_eligible_after_known_route_locations(self):
-        catalog = ("rest", "coldridge-valley", "stormwind")
-        self.assertEqual(queue_areas("gnome", "starting-area", catalog), ("coldridge-valley", "rest"))
-        self.assertEqual(queue_areas("gnome", "route", catalog),
-                         ("coldridge-valley", "dun-morogh", "loch-modan", "rest"))
+    def test_unknown_locations_are_only_queued_for_all_areas(self):
+        catalog = ("rest", "valley-of-trials", "undercity")
+        self.assertEqual(queue_areas("orc", "starting-area", catalog), ("valley-of-trials",))
+        self.assertEqual(queue_areas("orc", "route", catalog),
+                         ("valley-of-trials", "durotar", "orgrimmar", "the-barrens"))
+        all_areas = queue_areas("orc", "all", catalog)
+        self.assertIn("undercity", all_areas)
+        self.assertEqual(all_areas[-1], "rest")
 
     def test_alternate_speakers_can_place_one_recording_on_two_starting_routes(self):
         with tempfile.TemporaryDirectory() as folder:

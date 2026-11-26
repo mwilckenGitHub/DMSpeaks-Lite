@@ -237,60 +237,79 @@ def placeholder_evidence(ogg, words, name_start_sample, config, *, pronunciation
         extra = _extra_syllable(ogg, name_start_sample, phones, config, wave, dictionary, grammar, leaders)
         if extra:
             return extra
-        dictionary.write_text("".join(f"{k} {v}\n" for k, v in {**choices, **leaders}.items()), encoding="ascii")
-        line = " ".join([*leaders, "(" + " | ".join(choices) + ")"])
-        grammar.write_text(f"#JSGF V1.0;\ngrammar name;\npublic <line> = {line};\n", encoding="ascii")
-        observed = _recognize(config, dictionary, ["-jsgf", str(grammar)], wave)
-        candidate = next((w for w in observed if w["t"] in choices), None)
-        if not candidate or not candidate["t"].startswith("l"):
-            return None
-        hypothesis = choices[candidate["t"]]
-        whole = hypothesis in _STOCK
-        # A competing short name can lower the grammar score even when the
-        # entire stock word is audible. In that range require both searches
-        # to locate the complete word at the same boundaries.
-        needs_complete_match = hypothesis in _STOCK[:2] and .50 <= candidate["p"] < .60
-        if not needs_complete_match and candidate["p"] < (.60 if whole else .75):
-            return None
-        dictionary.write_text("".join(f"stock{i} {p}\n" for i, p in enumerate(_KEYWORDS)), encoding="ascii")
-        keywords = folder / "keywords.txt"
-        keywords.write_text("".join(f"stock{i} /1e-12/\n" for i in range(len(_KEYWORDS))), encoding="ascii")
-        observed = _recognize(config, dictionary, ["-kws", str(keywords), "-kws_delay", "0"], wave)
-        onset = name_start_sample / RATE + .150
-        for word in observed:
-            if not word["t"].startswith("stock"):
+        # Preserve the original single-name search before testing for an inserted word.
+        for allow_inserted in (False, True):
+            insertions = {f"a{i}": value for i, value in enumerate(_STOCK[:2])}
+            targets = [label for label in choices if label.startswith("t")]
+            entries = {**choices, **leaders, **(insertions if allow_inserted else {})}
+            dictionary.write_text("".join(f"{k} {v}\n" for k, v in entries.items()), encoding="ascii")
+            inserted_name = f"({' | '.join(insertions)}) ({' | '.join(targets)})"
+            alternatives = [*choices, inserted_name] if allow_inserted else choices
+            line = " ".join([*leaders, "(" + " | ".join(alternatives) + ")"])
+            grammar.write_text(f"#JSGF V1.0;\ngrammar name;\npublic <line> = {line};\n", encoding="ascii")
+            observed = _recognize(config, dictionary, ["-jsgf", str(grammar)], wave)
+            onset = name_start_sample / RATE + .150
+            spoken = [word for word in observed if not word["t"].startswith("<")]
+            inserted = len(spoken) >= 2 and spoken[-2]["t"] in insertions and spoken[-1]["t"] in targets
+            if allow_inserted != inserted:
                 continue
-            fragment = _KEYWORDS[int(word["t"][5:])]
-            word_end = word["b"] + word["d"]
-            complete_agreement = (
-                hypothesis in _STOCK[:2] and fragment in _STOCK[:2] and word["p"] >= .85
-                and abs(word["b"] - candidate["b"]) <= .060
-                and abs(word_end - (candidate["b"] + candidate["d"])) <= .080
-            )
-            # A forced alignment to the requested name can place its onset inside
-            # a substituted word. Two complete-word decodes must then agree on
-            # both boundaries, with the expected onset still inside that word.
-            if not onset - .10 <= word["b"] <= onset + .20:
-                if not (complete_agreement and candidate["p"] >= .70
-                        and word["b"] < onset < word_end - .080):
+            if inserted:
+                candidate, name = spoken[-2:]
+                if candidate["p"] < .70 or not onset - .15 <= name["b"] <= onset + .25:
                     continue
-            if fragment == _STOCK_INTERIOR:
-                # Connected speech can obscure the initial "ad" even with an
-                # intact "venture". Require an independently timed, complete
-                # stock-word hypothesis and a distinct intended pronunciation.
-                interior_offset = word["b"] - candidate["b"]
-                ending_offset = (candidate["b"] + candidate["d"]) - (word["b"] + word["d"])
-                if (hypothesis not in _STOCK[:2] or fragment in " ".join(phones[-1])
-                        or candidate["p"] < .70 or word["p"] < .85 or word["d"] < .22
-                        or not 0 <= interior_offset <= .18 or not -.04 <= ending_offset <= .12
-                        or abs(candidate["b"] - onset) > .10):
+                hypothesis = insertions[candidate["t"]]
+            else:
+                candidate = next((word for word in spoken if word["t"] in choices), None)
+                if not candidate or not candidate["t"].startswith("l"):
                     continue
-            elif needs_complete_match:
-                if not complete_agreement:
-                    continue
-            elif whole and candidate["p"] < .80 and fragment not in (*_KEYWORDS[:2], *_STOCK[:2]):
+                hypothesis = choices[candidate["t"]]
+            whole = hypothesis in _STOCK
+            # A competing short name can lower the grammar score even when the
+            # entire stock word is audible. In that range require both searches
+            # to locate the complete word at the same boundaries.
+            needs_complete_match = hypothesis in _STOCK[:2] and .50 <= candidate["p"] < .60
+            if not needs_complete_match and candidate["p"] < (.60 if whole else .75):
                 continue
-            return dict(hypothesis=hypothesis, word_score=candidate["p"], supporting_phones=fragment,
-                        keyword_score=word["p"], keyword_start_seconds=round(word["b"] - .150, 3),
-                        keyword_duration_seconds=word["d"], name_start_sample=name_start_sample)
+            dictionary.write_text("".join(f"stock{i} {p}\n" for i, p in enumerate(_KEYWORDS)), encoding="ascii")
+            keywords = folder / "keywords.txt"
+            keywords.write_text("".join(f"stock{i} /1e-12/\n" for i in range(len(_KEYWORDS))), encoding="ascii")
+            observed = _recognize(config, dictionary, ["-kws", str(keywords), "-kws_delay", "0"], wave)
+            for word in observed:
+                if not word["t"].startswith("stock"):
+                    continue
+                fragment = _KEYWORDS[int(word["t"][5:])]
+                word_end = word["b"] + word["d"]
+                complete_agreement = (
+                    hypothesis in _STOCK[:2] and fragment in _STOCK[:2] and word["p"] >= .85
+                    and abs(word["b"] - candidate["b"]) <= .060
+                    and abs(word_end - (candidate["b"] + candidate["d"])) <= .080
+                )
+                if inserted:
+                    # Corroborate the whole extra word independently before the name.
+                    if not complete_agreement or word_end > name["b"] + .035:
+                        continue
+                elif not onset - .10 <= word["b"] <= onset + .20:
+                    # A forced name alignment can place the onset inside a substitution.
+                    if not (complete_agreement and candidate["p"] >= .70
+                            and word["b"] < onset < word_end - .080):
+                        continue
+                if fragment == _STOCK_INTERIOR:
+                    # Connected speech can obscure the initial "ad" even with an
+                    # intact "venture". Require an independently timed, complete
+                    # stock-word hypothesis and a distinct intended pronunciation.
+                    interior_offset = word["b"] - candidate["b"]
+                    ending_offset = (candidate["b"] + candidate["d"]) - (word["b"] + word["d"])
+                    if (hypothesis not in _STOCK[:2] or fragment in " ".join(phones[-1])
+                            or candidate["p"] < .70 or word["p"] < .85 or word["d"] < .22
+                            or not 0 <= interior_offset <= .18 or not -.04 <= ending_offset <= .12
+                            or abs(candidate["b"] - onset) > .10):
+                        continue
+                elif needs_complete_match:
+                    if not complete_agreement:
+                        continue
+                elif whole and candidate["p"] < .80 and fragment not in (*_KEYWORDS[:2], *_STOCK[:2]):
+                    continue
+                return dict(hypothesis=hypothesis, word_score=candidate["p"], supporting_phones=fragment,
+                            keyword_score=word["p"], keyword_start_seconds=round(word["b"] - .150, 3),
+                            keyword_duration_seconds=word["d"], name_start_sample=name_start_sample)
     return None

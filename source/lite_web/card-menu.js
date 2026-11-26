@@ -17,7 +17,8 @@
   let configured;
   let changingPlayback = false;
   const menus = [
-    ['fileMenu', 'f', [['deskImport', () => element('card-file').click()], ['deskExport', exportDialog]]],
+    ['fileMenu', 'f', [['manageProfiles', () => element('remove-profiles').click()],
+      ['deskImport', () => element('card-file').click()], ['deskExport', exportDialog]]],
     ['viewMenu', 'v', [['profilesItem', () => navigate('characters')], ['deskFind', () => navigate('character-search')],
       ['deskReviewTitle', () => navigate('saved-recordings')], ['fetchItem', () => navigate('name-fetch')]]],
     ['optionsMenu', 'o', [['deskSpeechCommand', () => navigate('connection-settings')], ['deskPlaybackCommand', togglePlayback],
@@ -25,6 +26,7 @@
       ['advanced', () => navigate('advanced-settings')]]],
     ['helpMenu', 'h', [['deskHelpTopics', () => desktopHelp('deskStart', navigate)],
       ['deskLocalSpeech', () => desktopHelp('deskLocalSpeech', navigate)],
+      ['deskReportProblem', () => desktopHelp('deskReportProblem', navigate)],
       ['deskAbout', () => desktopHelp('deskAbout', navigate)]]],
   ];
   const heads = [];
@@ -102,13 +104,20 @@
       const item = node('button', '', message(label));
       item.type = 'button';
       item.setAttribute('role', label === 'deskPlaybackCommand' ? 'menuitemcheckbox' : 'menuitem');
+      if (label === 'manageProfiles' && element('remove-profiles').hidden) {
+        item.setAttribute('aria-disabled', 'true');
+      }
       if (label === 'deskPlaybackCommand') {
         const mark = node('span', 'menu-checkbox-mark');
         mark.setAttribute('aria-hidden', 'true');
         item.prepend(mark);
       }
       item.tabIndex = -1;
-      item.addEventListener('click', () => { dismiss(true); action(); });
+      item.addEventListener('click', () => {
+        if (item.getAttribute('aria-disabled') === 'true') return;
+        dismiss(true);
+        action();
+      });
       popup.append(item);
     }
     head.parentElement.append(popup);
