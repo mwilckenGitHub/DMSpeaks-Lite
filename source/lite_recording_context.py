@@ -34,7 +34,7 @@ INVENTORY_INSTANCE_PLAYBACK = "60fdda929dc2c6eb30808e6b126c754f098e79c434f7429bf
 EDITION_TEXT_PLAYBACK = "94f4c318a7c230c47309114054e0e3969b18d608196a08182de9d997c74b4799"
 # The current names catalog and its conditional Lua registrations are shipped together by Setup.
 REVIEWED_JOIN_PLAYBACK = "d816371b96893f2dd727b601840a32859dcdecda06baea9c80e208c992a3ffe2"
-CONTEXT_PROJECTION_SHA256 = "65d9162111b64be2df1952605899f1aa72edd62437277cfe18668c72d97cdb77"
+CONTEXT_PROJECTION_SHA256 = "cc733ad024a25fbd3293243ea52a9aef781ab2c05ac90f2a4dbb563baa6185e5"
 STOCK_REGIONS = ("Alliance", "Horde", "Shared", "Gossip")
 
 # Each additional release pairs its managed store with recipes captured from that build's WoW registrations.
