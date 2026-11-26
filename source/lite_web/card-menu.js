@@ -55,7 +55,6 @@
     target.focus();
     target.scrollIntoView({block: 'nearest'});
   }
-  element('selection-summary').addEventListener('click', () => navigate('connection-settings'));
   function updatePlaybackItem() {
     const control = popup?.querySelector('[role=menuitemcheckbox]');
     if (!control) return;
@@ -267,7 +266,7 @@
   function showStorage() {
     element('server-row').hidden = !network.has(media.value);
     element('storage-connect').hidden = !network.has(media.value) && !cloud.has(media.value);
-    element('storage-connect').textContent = message(cloud.has(media.value) ? 'signIn' : 'connectServer');
+    element('storage-connect').textContent = message(cloud.has(media.value) ? 'openStorageApp' : 'connectServer');
     element('offline-row').hidden = !cloud.has(media.value) && !mirrors.has(media.value);
     element('offline-help').hidden = element('offline-row').hidden;
     const customNetwork = network.has(media.value) || mounts.has(media.value);
@@ -275,7 +274,8 @@
     element('route-row').hidden = !advancedStorage.checked || !customNetwork || media.value === 'tailscale';
     element('lan-row').hidden = cloud.has(media.value) || mirrors.has(media.value) || media.value === 'tailscale' ||
       (!element('route-row').hidden && element('via-tailscale').checked);
-    tell('storage-help', message(mounts.has(media.value) ? media.value + 'Help' : mirrors.has(media.value) ? 'mirrorHelp' : media.value === 'tailscale' ? 'tailscaleHelp' : cloud.has(media.value) ? 'cloudHelp' : network.has(media.value) ? 'shareHelp' : 'folderHelp'));
+    const cloudHelp = media.value === 'googledrive' ? 'googleDriveFolderHelp' : 'cloudHelp';
+    tell('storage-help', message(mounts.has(media.value) ? media.value + 'Help' : mirrors.has(media.value) ? 'mirrorHelp' : media.value === 'tailscale' ? 'tailscaleHelp' : cloud.has(media.value) ? cloudHelp : network.has(media.value) ? 'shareHelp' : 'folderHelp'));
     element('disconnect').disabled = !configured?.folder;
     element('sync-now').disabled = !configured?.folder || configured.folder !== folder.value || configured.medium !== media.value;
   }

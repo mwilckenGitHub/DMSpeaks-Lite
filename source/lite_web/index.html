@@ -83,8 +83,11 @@
       <h2 id="name-fetch-heading" data-msg="fetchHeading">Fetch name audio</h2>
       <p id="character-hint" data-msg="linkCharacter">Choose a saved card, import a backup, or log in to a character in WoW.</p>
       <div class="fetch-fields">
-        <div><span class="field-label" data-msg="provider">Speech provider</span>
-          <button type="button" class="provider-summary" id="selection-summary" aria-controls="connection-settings" data-msg="speechSettings">Speech settings</button></div>
+        <label><span data-msg="provider">Speech provider</span>
+          <select id="fetch-provider" aria-controls="connection-settings">
+            <option value="" data-msg="chooseProvider">Choose a speech provider</option>
+          </select>
+        </label>
         <label><span data-msg="area">Where to fetch names</span>
           <select id="coverage" data-tip="areaTip" name="coverage" form="setup-form">
             <option value="starting-area" data-msg="startingArea">Starting area</option>
@@ -240,7 +243,9 @@
     <details id="account-settings" hidden><summary data-msg="accountNames">WoW account labels</summary>
       <form id="account-form"><label><span data-msg="accountNames">WoW account labels</span><select id="account-list"></select></label>
         <label><span data-msg="labelName">Display name</span><input id="account-alias" maxlength="60"></label>
-        <button type="submit" data-msg="saveLabel">Save label</button><p id="account-status" role="status"></p></form>
+        <div class="actions"><button type="submit" data-msg="saveLabel">Save label</button></div>
+        <p id="account-status" role="status"></p>
+      </form>
     </details>
     <details id="advanced-settings">
       <summary data-msg="advanced">Advanced settings</summary>

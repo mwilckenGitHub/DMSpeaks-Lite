@@ -272,9 +272,8 @@ header div p { margin-bottom: .15rem; }
 #selected-meta { color: var(--soft); font-size: .88rem; margin: .3rem 0 0; overflow-wrap: anywhere; }
 #selected-meta:empty { display: none; }
 .fetch-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .9rem; row-gap: .6rem; margin-block: .65rem; align-items: start; }
-.fetch-fields label,.fetch-fields .field-label { display: block; font-size: .85rem; font-weight: 600; color: var(--soft); }
-#coverage, #selection-summary { inline-size: 100%; margin: .25rem 0 0; min-block-size: 2.65rem; }
-#selection-summary { text-align: start; font-weight: 500; color: var(--ink); border-color: var(--line); background: var(--field); overflow-wrap: anywhere; }
+.fetch-fields label { display: block; font-size: .85rem; font-weight: 600; color: var(--soft); }
+#coverage, #fetch-provider { inline-size: 100%; margin: .25rem 0 0; min-block-size: 2.65rem; }
 #last-coverage { border: 0; margin: .7rem 0; padding: 0; }
 #coverage-count { color: var(--ink); font: 600 1rem/1.4 system-ui,sans-serif; margin: .1rem 0; }
 #coverage-meter { height: .45rem; display: block; margin-block: .25rem; }

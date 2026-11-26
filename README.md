@@ -8,10 +8,10 @@ GPT-6 Codex assisted with development, packaging, and testing.
 
 ## Install on Windows
 
-The latest Windows beta is **Beta 12.4**. Setup and its matching audio packs are available from the same release. [Beta 12.4 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.4)
+The latest Windows beta is **Beta 12.5**. Setup uses the existing audio and data ZIPs hosted with Beta 12.4. [Beta 12.5 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.5)
 
 1. Close WoW. Make sure **Spoken** and **Spoken Quests** are installed in World of Warcraft Forever. [Get Spoken](https://www.curseforge.com/wow/addons/spoken)
-2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Setup-Windows-x64.exe)
+2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.5/DMSpeaks-Lite-Setup-Windows-x64.exe)
 3. Review the license and credits, then select your WoW Forever folder if prompted.
 4. On **Choose voice packs**, check **All voice packs** or select **Alliance quests**, **Horde quests**, **Shared quests**, or **Gossip** individually. Use **+** and **−** to browse the folders. Each selected pack includes both of its folders. Setup downloads the common files and the selected packs.
 5. Choose your shortcuts, select **Install**, then select **Finish** to open Lite.
@@ -47,7 +47,7 @@ The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitH
 ## Fetch your first character's name
 
 1. In Fish Audio, sign in and choose **Get your API key**. Copy the key when it appears. [Fish Audio Get Started](https://fish.audio/app/developers/get-started/)
-2. In Lite, open **Options → Speech settings** and choose **Fish Audio (free)**. Paste the key into **Fish API token**, then choose **Save Fetch Settings → Test Saved Connection**.
+2. Under **Fetch name audio**, open **Choose a speech provider** and select **Fish Audio (free)**. Lite opens **Speech settings** farther down the page. Scroll down if needed, paste the key into **Fish API token**, then choose **Save Fetch Settings → Test Saved Connection**.
 3. Log in to your character and type `/reload` in WoW chat. In Lite, choose **Refresh character**, leave **Starting area** selected, and start the fetch. Reload WoW again after the fetch finishes.
 
 Fish Audio lists S2.1 Pro Free through November 30, 2026. [Current Fish Audio offer](https://fish.audio/developers/#pricing)

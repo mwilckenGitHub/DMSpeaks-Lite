@@ -23,10 +23,11 @@ MEDIA = "DMSpeaks-Lite-Name-Data.zip"
 MEDIA_MEMBERS = ("embedded-catalog.zip", "prefix-data.zip")
 MEDIA_PROGRESS_END = 20  # Leave five points for program extraction before voice placement.
 
-# The published Beta 12.3 and the first profile-action build share this runtime directory.
+# These earlier Setup builds share the same runtime directory.
 COMPATIBLE_DESKTOP_BUILDS = {
     "76d402a54a15946b6bfc0f39ace41f1474fd9ecde1e9f6a9c3bc251c98880a7d",
     "a2f530f564611eab49ada40afe28d9a1770d892b661d876c5bea809dbfdd390f",
+    "8808f1fe1ee73bf24f9cf649d9b5d57bac8f83c72200941efad4445511e516a4",
 }
 
 
@@ -48,6 +49,7 @@ def update_program(payload, support, work, previous):
     paths.extend(Path(name) for name in (
         "lite_addon/Settings.lua",
         "lite_game_ingress.py",
+        "lite_web/card-menu.js",
         "lite_web/desktop-help.js",
         "lite_web/index.html",
         "lite_web/lite.css",

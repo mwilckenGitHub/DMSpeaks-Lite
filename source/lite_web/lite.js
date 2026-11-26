@@ -8,6 +8,7 @@ let renewingSession;
 const prefix = '/api/spoken/player-names/';
 const setup = element('setup-form');
 const engine = element('engine');
+const fetchProvider = element('fetch-provider');
 const coverage = element('coverage');
 const sshFields = ['label', 'ssh_host', 'ssh_port', 'remote_host', 'remote_port', 'ssh_key'];
 const sshDefaults = { ssh_port: '22', remote_host: '127.0.0.1', remote_port: '8091' };
@@ -588,7 +589,10 @@ function updateProviderChoices(preferred) {
     engine.append(group);
   }
   const choice = preferred && [...engine.options].find(option => option.value && providerId(option.value) === preferred);
-  engine.value = choice?.value || (Object.hasOwn(engines, 'fish') ? 'fish' : '');
+  engine.value = choice?.value || '';
+  // Copy the same available providers and saved connections into the Fetch panel.
+  fetchProvider.replaceChildren(...Array.from(engine.children, item => item.cloneNode(true)));
+  fetchProvider.value = engine.value;
   return choice;
 }
 
@@ -663,8 +667,6 @@ function updateFetchButtons() {
   if (unsaved) showSavedCoverage(null);
   const saved = profiles.find(profile => profile.id === selected);
   const needsCredential = needsKey(engineType(engine.value)) && !saved?.has_credentials;
-  const activeProvider = [...engine.options].find(option => option.value && providerId(option.value) === options.provider_id);
-  tell('selection-summary', activeProvider?.text || message('chooseProvider'));
   const busy = fetchState === 'busy';
   element('remove-connection').disabled = busy || fetchWorking || fetchPending || setupSaving;
   coverage.disabled = busy || areaSaving || setupSaving || fetchPending || fetchWorking || coveragePending;
@@ -686,8 +688,9 @@ function updateFetchButtons() {
   element('npc-check-hint').hidden = element('check-coverage').disabled || !element('zone-npcs').hidden;
   tell('fetch-readiness', !gameCharacter ? ''
     : !catalogReady ? message('waitingCatalog')
-    : unsaved || !saved || setupEdited ? message('saveToFetch')
+    : !engine.value ? message('chooseProviderToFetch')
     : needsCredential ? message('credentialNeeded')
+    : unsaved || !saved || setupEdited ? message('saveToFetch')
     : mayBeMetered(engineType(engine.value)) && options.allow_metered !== true ? message('consentNeeded')
     : '');
   element('recording-review').hidden = !gameCharacter;
@@ -1018,11 +1021,26 @@ async function refreshCatalog() {
 }
 
 setup.addEventListener('input', () => { setupEdited = true; updateFetchButtons(); });
-engine.addEventListener('change', () => {
+// Both pickers edit the same settings. Fetch uses only the saved provider.
+function changeProvider() {
+  setupEdited = true;
+  fetchProvider.value = engine.value;
   element('setup-status').textContent = '';
   fetchError = '';
   element('coverage-status').textContent = '';
   showProvider();
+}
+
+engine.addEventListener('change', changeProvider);
+fetchProvider.addEventListener('change', () => {
+  engine.value = fetchProvider.value;
+  changeProvider();
+  if (!engine.value) return;
+  const panel = element('connection-settings');
+  panel.open = true;
+  panel.querySelector('summary').scrollIntoView({block: 'start'});
+  const credential = setup.elements.api_key;
+  if (!credential.disabled && !credential.placeholder) credential.focus();
 });
 coverage.addEventListener('change', async () => {
   tell('coverage-status', '');
