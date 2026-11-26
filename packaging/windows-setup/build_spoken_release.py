@@ -1,6 +1,8 @@
 """Repack a verified Lite Windows build with separate release media."""
 
 import argparse
+import ast
+from contextlib import ExitStack
 import gzip
 import json
 from hashlib import sha256
@@ -166,6 +168,25 @@ def update_game_ownership(support, work, placement, settings, *, previous_settin
     return target
 
 
+def verify_catalog_provenance(source, embedded_catalog, reused_media=None):
+    """Check that the packaged loader admits the exact catalog supplied by Setup."""
+    document = ast.parse(source.read_text(encoding="utf-8"))
+    pins, = (ast.literal_eval(statement.value) for statement in document.body
+             if isinstance(statement, ast.Assign)
+             and any(isinstance(target, ast.Name) and target.id == "PUBLIC_EVIDENCE_HASHES"
+                     for target in statement.targets))
+    with ExitStack() as stack:
+        if reused_media is not None:
+            media = stack.enter_context(ZipFile(reused_media))
+            embedded_catalog = stack.enter_context(media.open(MEDIA_MEMBERS[0]))
+        embedded = stack.enter_context(ZipFile(embedded_catalog))
+        prepared = stack.enter_context(embedded.open("DMSpeaksNameData/NameFetch/Prepared-dialogue-plans.zip"))
+        catalog = stack.enter_context(ZipFile(prepared))
+        provenance = sha256(catalog.read("portable-provenance.json")).hexdigest()
+    if provenance not in pins:
+        raise ValueError("The desktop build does not recognize the provenance of the name catalog supplied by Setup.")
+
+
 def build(args):
     receipt = args.previous / "verified.json"
     native.require(receipt, args.previous_sha256)
@@ -212,6 +233,8 @@ def build(args):
         native.require(support / MEDIA_MEMBERS[1], prefix_hash)
         refresh, icon, ownership, pruner, build_id = update_program(
             payload, support, work, previous, prior_desktop=(reuse or {}).get("desktop_build"))
+        reused_media = args.reuse_media / "Install files" / MEDIA if reuse else None
+        verify_catalog_provenance(payload / "source/lite_portable_inputs.py", support / MEDIA_MEMBERS[0], reused_media)
         settings_file = ROOT / "source/lite_addon/Settings.lua"
         if reuse:
             info = {"files": expected}

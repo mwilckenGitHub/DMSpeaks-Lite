@@ -47,6 +47,7 @@ PLAN_ADMISSION = "lite_verified_plan_build"
 STOCK_PCM_REPAIRS_SHA256 = "8e6e9f78d91d358b0dd1089655c367f5b05cf22756848c4c001d656ca3c7ca3f"
 PUBLIC_EVIDENCE_MEMBER = "portable-provenance.json"
 PUBLIC_EVIDENCE_HASHES = {
+    "c7590ea65b1168f0c4b1a47a641262b49101a58f1c77822c658e72fbd136ee66",  # WoW Audio Repository name-data catalog
     "4745ce5aaa03b245cea65a9e83c43fefba0e04ed32990b02ef8b055bf9ada752",
     "8b16c3f5447ea4ab07da37e33b281e746b218979e054e4dfee6ab12cde25515e",
     "0a02e553395126104a9803e44db6854fead13aced7c6bd1b25a324897a61db02",
