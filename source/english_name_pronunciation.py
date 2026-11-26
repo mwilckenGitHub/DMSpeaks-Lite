@@ -3,6 +3,7 @@ from contextlib import nullcontext
 import json
 import os
 import re
+from threading import Lock
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,7 @@ IPA_TO_CMU = {
     'əl': 'AH L', 'ən': 'AH N', 'əm': 'AH M', 'ᵻ': 'IH',
 }
 STRESS = str.maketrans('', '', 'ˈˌːˑ͡')
+_ESPEAK_LOCK = Lock()
 
 
 def pronunciation_runtime():
@@ -80,15 +82,18 @@ class _Engine:
         self.engine.espeak_SetVoiceByName.argtypes = [c_char_p]
         self.engine.espeak_TextToPhonemes.argtypes = [POINTER(c_void_p), c_int, c_int]
         self.engine.espeak_TextToPhonemes.restype = c_char_p
-        if self.engine.espeak_Initialize(2, 0, data.encode('utf-8') if data else None, 0x8000) <= 0:
-            raise RuntimeError('eSpeak NG could not initialize.')
-        if self.engine.espeak_SetVoiceByName(b'en-us') != 0:
-            raise RuntimeError('The eSpeak NG American English voice is unavailable.')
+        # eSpeak uses process-wide voice and dictionary state.
+        with _ESPEAK_LOCK:
+            if self.engine.espeak_Initialize(2, 0, data.encode('utf-8') if data else None, 0x8000) <= 0:
+                raise RuntimeError('eSpeak NG could not initialize.')
+            if self.engine.espeak_SetVoiceByName(b'en-us') != 0:
+                raise RuntimeError('The eSpeak NG American English voice is unavailable.')
 
     def pronunciation(self, word):
         buffer = create_string_buffer(word.encode())
         address = c_void_p(addressof(buffer))
-        ipa = self.engine.espeak_TextToPhonemes(byref(address), 1, (ord('|') << 8) | 2)
+        with _ESPEAK_LOCK:
+            ipa = self.engine.espeak_TextToPhonemes(byref(address), 1, (ord('|') << 8) | 2)
         if not ipa:
             raise ValueError('The English pronunciation could not be determined.')
         units = [unit.translate(STRESS) for unit in re.split(r'[|\s]+', ipa.decode()) if unit]
