@@ -181,9 +181,9 @@ def build(args):
         placement = placement_script(support / "install_addon.py", work / "install_addon.py",
                                      {name: info["files"][name]["sha256"] for name in (native.GAME, *PACK_ROOTS)})
         stock = update_game_ownership(support, work, placement, settings_file)
-        if args.release_tag:
+        if args.media_tag:
             info["download_base"] = ("https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/"
-                                     + args.release_tag)
+                                     + args.media_tag)
         media = work / "lite-media.json"
         write_json(media, info)
         setup_sources = (*native.SETUP_SOURCES, "VoicePackPage.nsh")
@@ -256,8 +256,9 @@ if __name__ == "__main__":
     for name in ("previous", "tools", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--previous-sha256", required=True)
-    parser.add_argument("--release-tag", help="Enable fetching the ZIPs from this public GitHub release")
+    parser.add_argument("--media-tag", "--release-tag", dest="media_tag",
+                        help="Public GitHub release tag hosting the matching media ZIPs")
     args = parser.parse_args()
-    if args.release_tag and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.release_tag):
-        parser.error("Use a simple GitHub release tag.")
+    if args.media_tag and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.media_tag):
+        parser.error("Use a simple GitHub media release tag.")
     build(args)

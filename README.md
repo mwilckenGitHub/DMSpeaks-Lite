@@ -8,15 +8,17 @@ GPT-6 Codex assisted with development, packaging, and testing.
 
 ## Install on Windows
 
-The latest Windows beta is **Beta 12.3**. Setup and its matching audio packs are available from the same release. [Beta 12.3 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.3)
+The latest Windows beta is **Beta 12.4**. Setup and its matching audio packs are available from the same release. [Beta 12.4 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.4)
 
 1. Close WoW. Make sure **Spoken** and **Spoken Quests** are installed in World of Warcraft Forever. [Get Spoken](https://www.curseforge.com/wow/addons/spoken)
-2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.3/DMSpeaks-Lite-Setup-Windows-x64.exe)
+2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Setup-Windows-x64.exe)
 3. Review the license and credits, then select your WoW Forever folder if prompted.
 4. On **Choose voice packs**, check **All voice packs** or select **Alliance quests**, **Horde quests**, **Shared quests**, or **Gossip** individually. Use **+** and **−** to browse the folders. Each selected pack includes both of its folders. Setup downloads the common files and the selected packs.
 5. Choose your shortcuts, select **Install**, then select **Finish** to open Lite.
 
-To add packs later, run Setup again. Clearing a box skips that pack download and keeps any copy already installed. In WoW, open **DMSpeaks Lite → Installed content** to see and enable the installed packs. For an offline install, leave the required ZIPs beside Setup. [Beta 12.3 ZIP downloads](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.3#assets)
+During downloads, the line above the progress bar shows the current archive and how much has downloaded. **Cancel** stops Setup before it changes the installation.
+
+To add packs later, run Setup again. Clearing a box skips that pack download and keeps any copy already installed. In WoW, open **DMSpeaks Lite → Installed content** to see and enable the installed packs. For an offline install, leave the required ZIPs beside Setup. [Beta 12.4 ZIP downloads](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.4#assets)
 
 Lite connects when Spoken provides the playback functions it uses, regardless of version number. It verifies the installed English recording and caption before selecting a matching plan. [Spoken add-on and voice packs](https://www.curseforge.com/wow/addons/spoken#description)
 
