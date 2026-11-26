@@ -64,7 +64,8 @@ def linktree(source, target):
     shutil.copytree(source, target, copy_function=copy)
 
 
-def payload_commands(payload, dest):
+def payload_commands(payload, dest, *, progress_start=0):
+    """Emit NSIS extraction steps in the portion of the bar reserved for program files."""
     directories = []
     total = 0
     for folder, subs, names in os.walk(payload):
@@ -73,7 +74,8 @@ def payload_commands(payload, dest):
                  for name in sorted(names)]
         total += sum(size for _, size in files)
         directories.append((Path(folder).relative_to(payload), files))
-    written = last = 0
+    written = 0
+    last = progress_start
     with dest.open("w", encoding="utf-8") as commands:
         for folder, files in directories:
             suffix = "" if folder == Path(".") else "\\" + str(folder).replace("$", "$$")
@@ -81,7 +83,7 @@ def payload_commands(payload, dest):
             for relative, size in files:
                 print(f'File "${{PAYLOAD}}\\{relative}"', file=commands)
                 written += size
-                percent = 25 * written // max(1, total)
+                percent = progress_start + (25 - progress_start) * written // max(1, total)
                 if percent > last:
                     print("IfErrors unpack_error", f'!insertmacro ShowOverall {percent} "$(InstallingProgramPhase)"',
                           sep="\n", file=commands)

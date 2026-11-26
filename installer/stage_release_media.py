@@ -3,6 +3,7 @@
 import argparse
 from hashlib import file_digest, sha256
 import json
+from os import getpid
 from pathlib import Path
 import re
 from shutil import copyfileobj
@@ -30,11 +31,18 @@ def matches(path, record):
         return file_digest(stream, "sha256").hexdigest() == record["sha256"]
 
 
-def download(url, target, record):
+def pending_download_prefix(pid):
+    """Identify temporary downloads belonging to one staging process."""
+    return f".download-{pid}-"
+
+
+def download(url, target, record, progress=None):
+    """Stream, verify, and atomically publish a release archive."""
     target.parent.mkdir(parents=True, exist_ok=True)
     pending = None
     try:
-        with NamedTemporaryFile(dir=target.parent, delete=False) as output:
+        with NamedTemporaryFile(dir=target.parent, prefix=pending_download_prefix(getpid()),
+                                suffix=".part", delete=False) as output:
             pending = Path(output.name)
             with urlopen(url, timeout=30) as response:
                 if not response.geturl().startswith("https://"):
@@ -47,6 +55,8 @@ def download(url, target, record):
                         raise ValueError(f"{target.name} exceeds the size recorded for this release.")
                     checksum.update(chunk)
                     output.write(chunk)
+                    if progress:
+                        progress(size)
             if size != record["bytes"] or checksum.hexdigest() != record["sha256"]:
                 raise ValueError(f"{target.name} does not match this release.")
         pending.replace(target)
@@ -55,9 +65,12 @@ def download(url, target, record):
             pending.unlink(missing_ok=True)
 
 
-def obtain(name, selected, cache, release):
+def obtain(name, selected, cache, release, progress=None):
+    """Check an adjacent or cached archive before downloading it."""
     record = release["files"][name]
     cached = cache / name
+    if progress:
+        progress("checking", 0)
     if selected.exists():
         if not matches(selected, record):
             raise ValueError(f"{selected.name} does not match this release.")
@@ -70,7 +83,10 @@ def obtain(name, selected, cache, release):
     if not re.fullmatch(r"https://github\.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/[A-Za-z0-9._-]+", base):
         raise ValueError("The Lite release download address is invalid.")
     print(f"Downloading {name}...", flush=True)
-    download(base + "/" + quote(name), cached, record)
+    if progress:
+        progress("downloading", 0)
+    download(base + "/" + quote(name), cached, record,
+             (lambda size: progress("downloading", size)) if progress else None)
     return cached
 
 
@@ -93,27 +109,44 @@ def select_collections(addons, pack_mask, include_installed):
     return [name for name in COLLECTIONS if name in selected]
 
 
-def stage(game, wow, cache, work, release, *, pack_mask=None, include_installed=False):
+def stage(game, wow, cache, work, release, *, pack_mask=None, include_installed=False, progress=None):
+    """Prepare and verify the common archives and the selected voice packs."""
     addons = wow / "Interface" / "AddOns"
     collections = select_collections(addons, pack_mask, include_installed)
-    # Repair can use a different directory after the player moves the downloads.
-    references = obtain(REFERENCES, game.with_name(REFERENCES), cache, release)
-    packs = {}
-    for collection in collections:
-        name = playback_zip(collection)
-        packs[name] = str(obtain(name, game.with_name(name), cache, release))
-    game = obtain(GAME, game, cache, release)
-    with ZipFile(references) as archive:
+    pack_names = [playback_zip(collection) for collection in collections]
+    names = [REFERENCES, *pack_names, GAME]
+    total_bytes = sum(release["files"][name]["bytes"] for name in names)
+    # Only verified archives contribute to the completed byte count.
+    completed_bytes = 0
+    archives = {}
+    for index, name in enumerate(names, 1):
+        archive_bytes = release["files"][name]["bytes"]
+
+        def report(action, bytes_read):
+            if progress:
+                progress(action, index, len(names), bytes_read, archive_bytes,
+                         completed_bytes + bytes_read, total_bytes)
+
+        # Repair can use a different directory after the player moves the downloads.
+        selected = game if name == GAME else game.with_name(name)
+        archives[name] = obtain(name, selected, cache, release, progress=report)
+        report("checked", archive_bytes)
+        completed_bytes += archive_bytes
+    if progress:
+        progress("unpacking", len(names), len(names), 0, 0, completed_bytes, total_bytes)
+    with ZipFile(archives[REFERENCES]) as archive:
         if tuple(archive.namelist()) != MEMBERS:
             raise ValueError(f"{REFERENCES} has an unexpected layout.")
         for name in MEMBERS:
             with archive.open(name) as source, (work / name).open("wb") as output:
                 copyfileobj(source, output, length=1024 * 1024)
+    packs = {name: str(archives[name]) for name in pack_names}
     (work / "lite-packs.json").write_text(json.dumps(packs), encoding="utf-8")
-    (work / "lite-media.ini").write_text(f"[media]\ngame={game}\n", encoding="utf-16")
+    (work / "lite-media.ini").write_text(f"[media]\ngame={archives[GAME]}\n", encoding="utf-16")
 
 
-def main():
+def main(argv=None, *, progress=None):
+    """Run media staging with an optional progress callback from Setup."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("game", type=Path)
     parser.add_argument("wow", type=Path)
@@ -121,12 +154,12 @@ def main():
     parser.add_argument("work", type=Path)
     parser.add_argument("--pack-mask", type=int, choices=(-1, *PACK_MASKS), default=-1)
     parser.add_argument("--include-installed", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         release = json.loads((args.work / "lite-media.json").read_bytes())
         stage(args.game, args.wow, args.cache, args.work, release,
               pack_mask=None if args.pack_mask == -1 else args.pack_mask,
-              include_installed=args.include_installed)
+              include_installed=args.include_installed, progress=progress)
     except (OSError, ValueError, BadZipFile) as error:
         parser.exit(1, f"{error}\n")
 

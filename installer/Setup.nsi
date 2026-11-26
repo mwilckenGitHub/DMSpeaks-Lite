@@ -34,8 +34,8 @@ Var OverallPercent
 Var PhaseBar
 Var MaintenanceTitle
 Var MaintenanceDescription
-Var RepairCancel
-Var NativeRepairCancel
+Var PhaseCancel
+Var NativeCancel
 Var HelperOutput
 
 !define MUI_PAGE_HEADER_TEXT "$(EulaTitle)"
@@ -102,13 +102,17 @@ Var VoicePackMask
     ClearErrors
     File /oname=lite-media.json "${EXTERNAL_MEDIA}"
     File /oname=stage_release_media.py "${STAGE_RELEASE_MEDIA}"
+    File /oname=setup_media_progress.py "${STAGE_MEDIA_PROGRESS}"
     ${If} ${Errors}
         StrCpy ${result} 1
     ${Else}
         !insertmacro ShowPhase "$(CheckingVoices)"
-        nsExec::ExecToLog '"$PLUGINSDIR\cleanup\python.exe" -I -B "$PLUGINSDIR\stage_release_media.py" "${game}" "${wow}\." "$LOCALAPPDATA\DMSpeaksLiteBeta\release-downloads\${SETUP_ID}" "$PLUGINSDIR\." --pack-mask=$VoicePackMask ${options}'
+        nsExec::ExecToLog '"$PLUGINSDIR\cleanup\python.exe" -I -B "$PLUGINSDIR\setup_media_progress.py" "$PhaseBar" "${RELEASE_MEDIA_PROGRESS}" "$PhaseCancel" "${game}" "${wow}\." "$LOCALAPPDATA\DMSpeaksLiteBeta\release-downloads\${SETUP_ID}" "$PLUGINSDIR\." --pack-mask=$VoicePackMask ${options}'
         Pop ${result}
         ${If} ${result} == "0"
+            ; Restore the usual percent range before the other helpers take over.
+            SendMessage $PhaseBar ${PBM_SETRANGE32} 0 100
+            SendMessage $PhaseBar ${PBM_SETPOS} ${RELEASE_MEDIA_PROGRESS} 0
             ReadINIStr $ArchivePath "$PLUGINSDIR\lite-media.ini" media game
             ${If} $ArchivePath == ""
                 StrCpy ${result} 1
@@ -264,8 +268,12 @@ Function ${prefix}CreatePhaseBar
     SendMessage $PhaseBar ${PBM_SETRANGE32} 0 100
     !if "${prefix}" == "un."
         ${If} $PlacementOption == "repair"
-            Call un.CreateRepairCancel
+            Call un.CreatePhaseCancel
         ${EndIf}
+    !else
+        !ifdef EXTERNAL_MEDIA
+            Call CreatePhaseCancel
+        !endif
     !endif
     System::Store L
 FunctionEnd
@@ -273,30 +281,36 @@ FunctionEnd
 !insertmacro DeclarePhaseBar ""
 !insertmacro DeclarePhaseBar "un."
 
-Function un.CreateRepairCancel
-    GetDlgItem $NativeRepairCancel $HWNDPARENT 2
-    ${If} $NativeRepairCancel != 0
+; Use a private button while cancellation is safe. The worker reads its checked state.
+!macro DeclarePhaseCancel prefix
+Function ${prefix}CreatePhaseCancel
+    GetDlgItem $NativeCancel $HWNDPARENT 2
+    ${If} $NativeCancel != 0
         StrCpy $1 $HWNDPARENT
         System::Alloc 16
         Pop $2
-        ; A push-like auto-radio button latches a single request even if clicked
-        ; twice. Its private ID avoids NSIS's abort command on the worker thread.
-        !insertmacro PhaseControl $NativeRepairCancel "Button" 0x50031009 1908 $RepairCancel
+        ; A push-like auto-radio button latches a request even if clicked twice.
+        !insertmacro PhaseControl $NativeCancel "Button" 0x50031009 1908 $PhaseCancel
         System::Free $2
-        ${If} $RepairCancel != 0
-            EnableWindow $NativeRepairCancel 0
-            SendMessage $RepairCancel ${WM_SETTEXT} 0 "STR:$(RepairCancelButton)"
+        ${If} $PhaseCancel != 0
+            EnableWindow $NativeCancel 0
+            SendMessage $PhaseCancel ${WM_SETTEXT} 0 "STR:$(RepairCancelButton)"
         ${EndIf}
     ${EndIf}
 FunctionEnd
 
-Function un.RestoreRepairCancel
-    ${If} $RepairCancel != 0
-        EnableWindow $RepairCancel 0
-        ShowWindow $RepairCancel ${SW_HIDE}
-        ShowWindow $NativeRepairCancel ${SW_SHOWNA}
+Function ${prefix}RestorePhaseCancel
+    ${If} $PhaseCancel != 0
+        EnableWindow $PhaseCancel 0
+        ShowWindow $PhaseCancel ${SW_HIDE}
+        ShowWindow $NativeCancel ${SW_SHOWNA}
     ${EndIf}
 FunctionEnd
+!macroend
+!ifdef EXTERNAL_MEDIA
+    !insertmacro DeclarePhaseCancel ""
+!endif
+!insertmacro DeclarePhaseCancel "un."
 
 !macro ShowOverall percent phase
     SendMessage $PhaseBar ${PBM_SETPOS} ${percent} 0
@@ -380,6 +394,7 @@ packs_ready:
     StrCpy $PlacementOption "--repair"
 normal_start:
     StrCpy $PhaseBar 0
+    StrCpy $PhaseCancel 0
     StrCmp $INSTDIR "" use_installed
     Return
 use_installed:
@@ -484,6 +499,11 @@ Section
     IfErrors maintenance_error
     !ifdef EXTERNAL_MEDIA
         !insertmacro StageReleaseMedia "$EXEDIR\DMSpeaks-WoW.zip" "$INSTDIR" "" $3
+        Call RestorePhaseCancel
+        ${If} $3 == "4"
+            SetErrorLevel 4
+            Quit
+        ${EndIf}
         ${If} $3 != "0"
             SetErrorLevel 1
             !insertmacro FailPhase "$(ReleaseMediaError)"
@@ -687,7 +707,7 @@ Function un.onInit
     StrCpy $OtherClients "0"
     StrCpy $RemoveNameData 0
     StrCpy $PhaseBar 0
-    StrCpy $RepairCancel 0
+    StrCpy $PhaseCancel 0
     SetRegView 64
     StrCpy $INSTDIR "$LOCALAPPDATA\DMSpeaksLite\Maintenance"
     ReadRegStr $GameFolder HKCU "${APP_ENTRY}" "GameFolder"
@@ -858,7 +878,7 @@ build_ready:
     !endif
     IfFileExists "$1\runtime\python\python.exe" 0 damaged
     IfSilent repair_run
-    StrCmp $RepairCancel 0 placement_error
+    StrCmp $PhaseCancel 0 placement_error
 repair_run:
     !insertmacro ShowPhase "$(CheckingVoices)"
     !ifdef EXTERNAL_MEDIA
@@ -868,16 +888,19 @@ repair_run:
         IfErrors 0 +2
         StrCpy $VoicePackMask 0
         !insertmacro StageReleaseMedia "$ArchivePath" "$GameFolder" "--include-installed" $0
+        StrCmp $0 "4" repair_canceled
         StrCmp $0 "0" 0 placement_error
+        EnableWindow $PhaseCancel 1
         !insertmacro ExternalPrefix "$1" $0
         StrCmp $0 "0" 0 placement_error
         SetOutPath "$INSTDIR"
-        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --catalog "$PLUGINSDIR\embedded-catalog.zip" --release-packs "$PLUGINSDIR\lite-packs.json" --repair --progress-window $PhaseBar --repair-cancel-window $RepairCancel'
+        !insertmacro ShowOverall 25 "$(PreparingVoicesPhase)"
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --catalog "$PLUGINSDIR\embedded-catalog.zip" --release-packs "$PLUGINSDIR\lite-packs.json" --repair --progress-window $PhaseBar --repair-cancel-window $PhaseCancel --desktop-complete'
     !else
-        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --repair --progress-window $PhaseBar --repair-cancel-window $RepairCancel'
+        nsExec::ExecToLog '"$1\runtime\python\python.exe" -I -B "$INSTDIR\install_addon.py" "$GameFolder\." "$ArchivePath" --repair --progress-window $PhaseBar --repair-cancel-window $PhaseCancel'
     !endif
     Pop $0
-    Call un.RestoreRepairCancel
+    Call un.RestorePhaseCancel
     StrCmp $0 "4" repair_canceled
     StrCmp $0 "5" repair_files_in_use
     StrCmp $0 "0" 0 placement_error
@@ -1020,10 +1043,11 @@ shortcut_error:
     SetErrorLevel 1
     !insertmacro FailPhase "$(UpdateShortcutsError)"
 repair_missing:
-    Call un.RestoreRepairCancel
+    Call un.RestorePhaseCancel
     SetErrorLevel 1
     !insertmacro FailPhase "$(SelectRepairArchive)"
 repair_canceled:
+    Call un.RestorePhaseCancel
     StrCpy $MaintenanceTitle "$(RepairCanceled)"
     StrCpy $MaintenanceDescription "$(RepairCanceledDetails)"
     !insertmacro ShowPhase "$(RepairCanceled)"
@@ -1033,11 +1057,11 @@ repair_files_in_use:
     SetErrorLevel 5
     !insertmacro FailPhase "$(PlacementFilesInUse)"
 damaged:
-    Call un.RestoreRepairCancel
+    Call un.RestorePhaseCancel
     SetErrorLevel 1
     !insertmacro FailPhase "$(RestoreSetupFirst)"
 placement_error:
-    Call un.RestoreRepairCancel
+    Call un.RestorePhaseCancel
     SetErrorLevel 1
     !insertmacro FailPhase "$(MaintenanceError)"
 catalog_in_use:

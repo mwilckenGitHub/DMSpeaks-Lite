@@ -262,22 +262,53 @@ class GameIngress:
         finally:
             self.catalog_lock.release()
 
-    def popup_player(self):
+    def latest_saved_player(self):
+        """Find the current character and the revision WoW saved for it."""
         selection = self.app.store.setting(GAME_CHARACTER, {})
         candidates = []
         for path in self.account.glob("*/SavedVariables/DMSpeaksLite.lua"):
             try:
                 if path.resolve() != path:
                     continue
+                modified_ns = path.stat().st_mtime_ns
                 player = imported_character(load_settings(path))
-                if player:
-                    candidates.append((path.stat().st_mtime_ns, str(path) == selection.get("path"), path, player))
+                if player and modified_ns == path.stat().st_mtime_ns:
+                    candidates.append((modified_ns, str(path) == selection.get("path"), path, player))
             except (OSError, ValueError):
                 continue
         if not candidates:
             return None
-        _, _, path, player = max(candidates, key=lambda item: item[:3])
-        return None if player["id"] in self.removed_profiles() else (path, player)
+        modified_ns, _, path, player = max(candidates, key=lambda item: item[:3])
+        return path, player, modified_ns
+
+    def popup_player(self):
+        """Read the current character if its profile is available to Lite."""
+        saved = self.latest_saved_player()
+        if saved and saved[1]["id"] not in self.profile_suppressions():
+            return saved[:2]
+        return None
+
+    def refresh_saved_player(self, *, manual=False):
+        """Rediscover a deleted profile after WoW saves it or the user refreshes."""
+        with self.profile_lock:
+            saved = self.latest_saved_player()
+            if not saved:
+                return {}
+            _, player, modified_ns = saved
+            ident = player["id"]
+            profiles = self.profile_suppressions()
+            disposition = profiles.get(ident)
+            if disposition is None:
+                return {}
+            mode = disposition.get("mode")
+            if mode == "hide":
+                return {"hidden_character": disposition} if manual else {}
+            # Old Remove entries can be unhidden individually or refreshed as the current character.
+            if manual or (mode == "delete" and modified_ns > disposition["deleted_ns"]):
+                del profiles[ident]
+                self.save_profile_suppressions(profiles)
+                return {"restored": True}
+            return {}
 
     def popup_character(self):
         linked = self.popup_player()
@@ -325,11 +356,27 @@ class GameIngress:
         return {ident: values for ident, values in older.items()
                 if values.get("name", "").split(" ", 1)[0].casefold() in recordings} | known
 
-    def removed_profiles(self):
+    def profile_suppressions(self):
+        """Read the saved visibility state, including old Remove entries."""
         return self.app.store.setting("lite_wow_removed_profiles_" + str(self.root), {})
 
+    def save_profile_suppressions(self, profiles):
+        """Persist visibility for this WoW installation."""
+        self.app.store.set_setting("lite_wow_removed_profiles_" + str(self.root), profiles)
+
+    def removed_profiles(self):
+        """Return the profiles the user can unhide."""
+        return {ident: profile for ident, profile in self.profile_suppressions().items()
+                if profile.get("mode") != "delete"}
+
     def change_profile_removal(self, data):
+        """Apply one visibility operation to the selected profiles."""
+        if data == {"refresh_current": True}:
+            return self.refresh_saved_player(manual=True)
         remove = data.get("removed")
+        mode = data.get("mode")
+        if mode is not None and (mode not in ("hide", "delete") or remove is not True):
+            raise ValueError("Choose whether to hide or delete the profiles.")
         if "character_ids" in data:
             ids = data["character_ids"]
             if remove is not True or "character_id" in data:
@@ -340,25 +387,31 @@ class GameIngress:
                 or not all(isinstance(ident, str) and ident for ident in ids)):
             raise ValueError("Choose a character profile to remove or restore.")
         with self.request_lock, self.profile_lock:
-            profiles = self.removed_profiles()
+            profiles = self.profile_suppressions()
             if remove:
                 if self.active and self.active[4] in ids:
                     raise ValueError("Wait for this character's current fetch or coverage check to finish.")
                 known = self.known_players(None, self.name_recording_counts())
                 selected = {}
+                deleted_ns = time_ns()
                 for ident in ids:
                     profile = known.get(ident, {})
                     if not self.can_target(profile):
                         raise ValueError("That character profile is unavailable.")
-                    selected[ident] = {"name": profile["name"], "realm": profile["realm"]}
+                    if mode == "delete":
+                        selected[ident] = {"mode": mode, "deleted_ns": deleted_ns}
+                    else:
+                        selected[ident] = {"name": profile["name"], "realm": profile["realm"]}
+                        if mode == "hide":
+                            selected[ident]["mode"] = mode
                 profiles.update(selected)
             else:
                 ident, = ids
-                if ident not in profiles:
-                    raise ValueError("That character profile is already visible.")
+                if ident not in profiles or profiles[ident].get("mode") == "delete":
+                    raise ValueError("That character profile is unavailable to unhide.")
                 del profiles[ident]
-            self.app.store.set_setting("lite_wow_removed_profiles_" + str(self.root), profiles)
-            return profiles
+            self.save_profile_suppressions(profiles)
+            return self.removed_profiles()
 
     def remember_account(self, path, ident):
         # Account folders can identify a login. Keep labels in this installation only.
@@ -393,11 +446,12 @@ class GameIngress:
         return all(isinstance(values.get(k), str) and values[k] for k in ("name", "realm", "race", "class"))
 
     def resolve_player(self, linked, ident):
-        if linked and ident == linked[1]["id"]:
-            return linked[1]
         with self.profile_lock:
-            values = ({} if ident in self.removed_profiles()
-                      else self.known_players(linked, self.name_recording_counts()).get(ident, {}))
+            if ident in self.profile_suppressions():
+                raise ValueError("That character profile is unavailable. Choose a character again.")
+            if linked and ident == linked[1]["id"]:
+                return linked[1]
+            values = self.known_players(linked, self.name_recording_counts()).get(ident, {})
         if not self.can_target(values):
             raise ValueError("That character profile is unavailable. Choose a character again.")
         from roster import import_roster
@@ -433,7 +487,7 @@ class GameIngress:
             storage = self.cards.storage_states(known)
             default_location = local_location(self.addons)
             accounts = self.app.store.setting("lite_wow_accounts_" + str(self.root), {})
-            removed = self.removed_profiles()
+            removed = self.profile_suppressions()
             rows, represented = [], set()
             for ident, values in known.items():
                 name = values.get("first_name") or (values.get("name") or "").partition(" ")[0]
@@ -470,9 +524,10 @@ class GameIngress:
         restore_loader(self.addons)
         paths = sorted(self.account.glob("*/SavedVariables/DMSpeaksLite.lua"))
         revision = (tuple((str(path), path.stat().st_mtime_ns, path.stat().st_size) for path in paths),
-                    frozenset(self.removed_profiles()))
+                    frozenset(self.profile_suppressions()))
         if self.roster_revision == revision:
             return
+        self.refresh_saved_player()
         for path in paths:
             if path.resolve() != path:
                 continue

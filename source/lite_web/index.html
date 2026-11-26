@@ -49,9 +49,9 @@
       <p id="character-sync-status" role="status"></p>
       <ul id="character-list" aria-label="Saved characters" data-aria-msg="savedCharacters"></ul>
       <p id="search-status" role="status"></p>
-      <button type="button" id="remove-profiles" class="secondary" data-msg="removeProfiles" hidden>Remove profiles…</button>
+      <button type="button" id="remove-profiles" class="secondary" data-msg="manageProfiles" hidden>Manage profiles…</button>
       <details id="removed-profiles" hidden>
-        <summary data-msg="removedProfiles">Removed profiles</summary>
+        <summary data-msg="hiddenProfiles">Hidden profiles</summary>
         <ul id="removed-profile-list"></ul>
       </details>
       <p id="profile-removal-status" role="status"></p>
@@ -61,10 +61,13 @@
         <div id="selected-portrait"></div>
         <div class="selected-details"><h2 id="fetch-character" dir="auto"></h2>
           <p id="selected-meta"></p><div id="selected-storage"></div></div>
-        <button type="button" id="remove-profile" class="secondary" data-msg="removeProfile" hidden>Remove profile…</button>
+        <div id="profile-actions" class="actions" hidden>
+          <button type="button" id="hide-profile" class="secondary" data-msg="hideProfile">Hide Profile</button>
+          <button type="button" id="delete-profile" class="secondary" data-msg="deleteProfile">Delete Profile</button>
+        </div>
       </div>
       <dialog id="profile-removal" aria-labelledby="profile-removal-title" aria-describedby="profile-removal-description">
-        <h2 id="profile-removal-title" data-msg="removeProfileTitle">Remove profile?</h2>
+        <h2 id="profile-removal-title" data-msg="manageProfilesTitle">Manage profiles</h2>
         <p id="profile-removal-description"></p>
         <fieldset id="profile-removal-selection" aria-labelledby="profile-removal-title" hidden>
           <label><input type="checkbox" id="remove-all-profiles"><span data-msg="selectAllProfiles">Select all profiles</span></label>
@@ -72,7 +75,8 @@
         </fieldset>
         <div class="actions">
           <form method="dialog"><button type="submit" data-msg="cancel" autofocus>Cancel</button></form>
-          <button type="button" id="confirm-profile-removal" data-msg="removeProfileConfirm">Remove profile</button>
+          <button type="button" id="confirm-profile-hide" data-msg="hideProfile">Hide Profile</button>
+          <button type="button" id="confirm-profile-delete" data-msg="deleteProfile">Delete Profile</button>
         </div>
         <p id="profile-removal-error" role="status"></p>
       </dialog>

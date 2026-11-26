@@ -21,6 +21,13 @@ from spoken_game_media import PACK_ROOTS, placement_script, split_game
 ROOT = Path(__file__).resolve().parents[2]
 MEDIA = "DMSpeaks-Lite-Name-Data.zip"
 MEDIA_MEMBERS = ("embedded-catalog.zip", "prefix-data.zip")
+MEDIA_PROGRESS_END = 20  # Leave five points for program extraction before voice placement.
+
+# The published Beta 12.3 and the first profile-action build share this runtime directory.
+COMPATIBLE_DESKTOP_BUILDS = {
+    "76d402a54a15946b6bfc0f39ace41f1474fd9ecde1e9f6a9c3bc251c98880a7d",
+    "a2f530f564611eab49ada40afe28d9a1770d892b661d876c5bea809dbfdd390f",
+}
 
 
 def record(path):
@@ -40,7 +47,12 @@ def update_program(payload, support, work, previous):
     paths.extend(path.relative_to(source) for path in source.glob("lite_addon/Icons/*.tga"))
     paths.extend(Path(name) for name in (
         "lite_addon/Settings.lua",
+        "lite_game_ingress.py",
         "lite_web/desktop-help.js",
+        "lite_web/index.html",
+        "lite_web/lite.css",
+        "lite_web/lite.js",
+        "lite_web/locale.js",
         "lite_web/menu-help-en.js",
     ))
     for relative in sorted(paths):
@@ -79,7 +91,9 @@ def update_program(payload, support, work, previous):
     for name in ("Prepared-dialogue-plans.sha256", "Prepared-paced-deliveries.json"):
         if (payload / name).is_file():
             fingerprint.update(name.encode("ascii") + b"\0" + bytes.fromhex(native.digest(payload / name)))
-    manifest["compatible_builds"] = sorted(set(manifest["compatible_builds"]) | {manifest["after"]})
+    manifest["compatible_builds"] = sorted(
+        set(manifest["compatible_builds"]) | COMPATIBLE_DESKTOP_BUILDS | {manifest["after"]}
+    )
     manifest["after"] = fingerprint.hexdigest()
     with ZipFile(refresh, "x", compression=ZIP_DEFLATED) as archive:
         archive.writestr("update.json", json.dumps(manifest, sort_keys=True))
@@ -173,7 +187,10 @@ def build(args):
         media = work / "lite-media.json"
         write_json(media, info)
         setup_sources = (*native.SETUP_SOURCES, "VoicePackPage.nsh")
-        setup_inputs = (media, ownership, pruner, *(ROOT / "installer" / name for name in setup_sources))
+        staging = ROOT / "installer/stage_release_media.py"
+        progress = ROOT / "installer/setup_media_progress.py"
+        setup_inputs = (media, ownership, pruner, staging, progress,
+                        *(ROOT / "installer" / name for name in setup_sources))
         setup_id = sha256("".join(native.digest(path) for path in setup_inputs).encode("ascii")).hexdigest()
         recipe = work / "installer"
         recipe.mkdir()
@@ -185,7 +202,7 @@ def build(args):
                                     ("shell_maintenance.py", "shell_maintenance.py")):
             shutil.copyfile(support / "cleanup" / packaged_name, recipe / name)
         includes = work / "payload.nsh"
-        native.payload_commands(payload, includes)
+        native.payload_commands(payload, includes, progress_start=MEDIA_PROGRESS_END)
         python = work / "python.nsh"
         runtime = payload / "runtime/python"
         members = sorted(p for p in runtime.iterdir() if p.is_file() and p.name != "pythonw.exe"
@@ -206,7 +223,8 @@ def build(args):
             STOCK_OWNERS=stock, COMPATIBILITY_ICON=icon, LEGACY_ICON=icon,
             REFRESH=support / "refresh_runtime.py", OPEN_LITE_SCRIPT=support / "open_lite.py",
             UPDATE_SCRIPT=support / "apply_beta_update.py", RUNTIME_DELTA=refresh, EXTERNAL_MEDIA=media,
-            STAGE_RELEASE_MEDIA=ROOT / "installer/stage_release_media.py",
+            STAGE_RELEASE_MEDIA=staging, STAGE_MEDIA_PROGRESS=progress,
+            RELEASE_MEDIA_PROGRESS=MEDIA_PROGRESS_END,
             PREFIX_INSTALL_SCRIPT=ROOT / "installer/install_prefix_media.py",
             PREFIX_ARCHIVE_HASH=prefix_hash, PREFIX_MANIFEST_HASH=native.PREFIX_MANIFEST,
         )
@@ -220,6 +238,7 @@ def build(args):
         for shell in (extracted, maintenance):
             found = shell / "$PLUGINSDIR"
             native.require(found / "stage_release_media.py", native.digest(settings["STAGE_RELEASE_MEDIA"]))
+            native.require(found / "setup_media_progress.py", native.digest(progress))
             native.require(found / "lite-media.json", native.digest(media))
             if any((found / name).exists() for name in (*MEDIA_MEMBERS, native.GAME, MEDIA)):
                 raise ValueError("Release media was embedded in the executable.")

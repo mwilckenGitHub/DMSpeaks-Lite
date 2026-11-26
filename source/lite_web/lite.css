@@ -261,7 +261,7 @@ header div p { margin-bottom: .15rem; }
 #name-fetch { padding: clamp(1rem, 2.5vw, 1.65rem); }
 .selected-character { display: flex; gap: .85rem; align-items: center; padding-block-end: 1rem; margin-block-end: 1rem; border-block-end: 1px solid var(--line); }
 #remove-profiles { margin-block-start: .65rem; }
-#remove-profile { margin-inline-start: auto; }
+#profile-actions { margin-inline-start: auto; justify-content: flex-end; }
 #removed-profiles { margin-block-start: .85rem; }
 #removed-profile-list { list-style: none; padding: 0; margin-block: .65rem 0; }
 #removed-profile-list li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-block-start: .35rem; }

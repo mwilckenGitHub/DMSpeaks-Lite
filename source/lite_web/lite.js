@@ -179,23 +179,28 @@ const removalDialog = element('profile-removal');
 const removalChoices = element('profile-removal-choices');
 const removalSelection = element('profile-removal-selection');
 const removeAll = element('remove-all-profiles');
+const profileActions = [
+  {mode: 'hide', trigger: element('hide-profile'), button: element('confirm-profile-hide')},
+  {mode: 'delete', trigger: element('delete-profile'), button: element('confirm-profile-delete')},
+];
 let removalCandidate;
 
-function drawRemovedProfiles(profiles) {
+function drawHiddenProfiles(profiles) {
   const items = Object.entries(profiles).sort(([, left], [, right]) =>
     fullName(left).localeCompare(fullName(right), document.documentElement.lang));
   const list = element('removed-profile-list');
   element('removed-profiles').hidden = items.length === 0;
   list.replaceChildren(...items.map(([id, profile]) => {
     const row = node('li', '');
-    const button = node('button', 'secondary', message('restoreProfile'));
+    const button = node('button', 'secondary', message('unhideProfile'));
+    button.setAttribute('aria-label', message('unhideProfile') + ' ' + fullName(profile));
     button.type = 'button';
     button.addEventListener('click', async () => {
       await withStatus(button, element('profile-removal-status'), async () => {
-        drawRemovedProfiles(await api('profile-archive', {character_id: id, removed: false}));
+        drawHiddenProfiles(await api('profile-archive', {character_id: id, removed: false}));
         await refreshProfiles({archiveChanged: true});
         element('character-search').focus();
-        return message('profileRestored', {name: fullName(profile)});
+        return message('profileUnhidden', {name: fullName(profile)});
       });
     });
     row.append(node('span', '', fullName(profile)), button);
@@ -208,8 +213,10 @@ function updateRemovalChoices() {
   const total = removalChoices.childElementCount;
   removeAll.checked = total > 0 && picked === total;
   removeAll.indeterminate = picked > 0 && picked < total;
-  element('confirm-profile-removal').disabled = !picked;
-  tell('confirm-profile-removal', message('removeSelectedProfiles', {count: picked}));
+  for (const {mode, button} of profileActions) {
+    button.disabled = !picked;
+    button.textContent = message(mode === 'hide' ? 'hideSelectedProfiles' : 'deleteSelectedProfiles', {count: picked});
+  }
 }
 removeAll.addEventListener('change', () => {
   for (const input of removalChoices.querySelectorAll('input')) input.checked = removeAll.checked;
@@ -217,18 +224,23 @@ removeAll.addEventListener('change', () => {
 });
 removalChoices.addEventListener('change', updateRemovalChoices);
 
-function openRemovalDialog(profile) {
+// Confirm a single operation or let the user choose an action for several profiles.
+function openRemovalDialog(profile, action) {
   if (removalSelection.disabled) return;
   removalCandidate = profile;
   removalSelection.hidden = Boolean(profile);
+  for (const {mode, button} of profileActions) {
+    button.hidden = Boolean(profile) && mode !== action;
+    button.disabled = false;
+    button.textContent = message(mode === 'hide' ? 'hideProfile' : 'deleteProfile');
+  }
   if (profile) {
-    tell('profile-removal-title', message('removeProfileTitle'));
-    tell('profile-removal-description', message('removeProfileDescription', {name: fullName(profile)}));
-    tell('confirm-profile-removal', message('removeProfileConfirm'));
-    element('confirm-profile-removal').disabled = false;
+    const key = action === 'hide' ? 'hideProfile' : 'deleteProfile';
+    tell('profile-removal-title', message(key + 'Title'));
+    tell('profile-removal-description', message(key + 'Description', {name: fullName(profile)}));
   } else {
-    tell('profile-removal-title', message('removeProfilesTitle'));
-    tell('profile-removal-description', message('removeProfilesDescription'));
+    tell('profile-removal-title', message('manageProfilesTitle'));
+    tell('profile-removal-description', message('manageProfilesDescription'));
     removalChoices.replaceChildren(...roster.filter(row => row.selectable).map(row => {
       const label = node('label', '');
       const input = node('input', '');
@@ -243,33 +255,38 @@ function openRemovalDialog(profile) {
   removalDialog.showModal();
 }
 element('remove-profiles').addEventListener('click', () => openRemovalDialog(null));
-element('remove-profile').addEventListener('click', () => {
-  const profile = roster.find(row => row.id === selectedProfile && row.selectable);
-  if (profile) openRemovalDialog(profile);
-});
+for (const {mode, trigger, button} of profileActions) {
+  trigger.addEventListener('click', () => {
+    const profile = roster.find(row => row.id === gameCharacter?.id && row.selectable);
+    if (profile) openRemovalDialog(profile, mode);
+  });
+  button.addEventListener('click', () => applyProfileAction(mode, button));
+}
 
-element('confirm-profile-removal').addEventListener('click', async event => {
+// Update the roster after Hide Profile or Delete Profile succeeds on the desktop.
+async function applyProfileAction(mode, button) {
   const profile = removalCandidate;
   const ids = profile ? [profile.id] : Array.from(removalChoices.querySelectorAll('input:checked'), input => input.value);
   if (!ids.length || removalSelection.disabled) return;
   removalSelection.disabled = true;
-  await withStatus(event.currentTarget, element('profile-removal-error'), async () => {
+  await withStatus(button, element('profile-removal-error'), async () => {
     const selection = profile ? {character_id: profile.id} : {character_ids: ids};
-    const removed = await api('profile-archive', {...selection, removed: true});
+    const hidden = await api('profile-archive', {...selection, mode, removed: true});
     if (ids.includes(linkedCharacter?.id)) setLinkedCharacter(null);
     roster = roster.filter(row => !ids.includes(row.id));
     if (ids.includes(selectedProfile)) selectProfile(null);
     drawRoster();
-    drawRemovedProfiles(removed);
+    drawHiddenProfiles(hidden);
     await refreshProfiles({archiveChanged: true});
     removalDialog.close();
-    tell('profile-removal-status', profile ? message('profileRemoved', {name: fullName(profile)})
-      : message('profilesRemoved', {count: ids.length}));
+    const key = mode === 'hide' ? 'Hidden' : 'Deleted';
+    tell('profile-removal-status', profile ? message('profile' + key, {name: fullName(profile)})
+      : message('profiles' + key, {count: ids.length}));
     element(profile || element('remove-profiles').hidden ? 'follow-character' : 'remove-profiles').focus();
     return '';
   });
   removalSelection.disabled = false;
-});
+}
 
 let rosterRevision;
 let readingRoster;
@@ -320,7 +337,7 @@ async function readProfiles(generation) {
     document.dispatchEvent(new Event('lite-roster'));
     try {
       const archive = await pollRead('profile-archive');
-      if (generation === rosterGeneration) drawRemovedProfiles(archive);
+      if (generation === rosterGeneration) drawHiddenProfiles(archive);
     } catch (error) {
       if (generation === rosterGeneration) {
         rosterRevision = undefined;
@@ -500,21 +517,28 @@ async function pollRead(route, data) {
 const refreshCharacter = element('refresh-character');
 refreshCharacter.addEventListener('click', () => withStatus(refreshCharacter, element('character-sync-status'), async () => {
   const previous = linkedCharacter?.id;
-  // A background poll may already have read the file before the user clicked.
+  const outcome = await pollRead('profile-archive', {refresh_current: true});
+  // Drain any read that started before a deleted profile was rediscovered.
   if (readingGameOptions) await Promise.allSettled([readingGameOptions]);
   const state = await readGameOptions();
   setLinkedCharacter(state.game_character);
-  if (readingRoster) await readingRoster;
-  const rosterError = await refreshProfiles();
+  const rosterError = await refreshProfiles({archiveChanged: outcome.restored === true});
   if (rosterError) return rosterError;
   if (linkedCharacter?.id === state.game_character?.id && state.provider_id === options.provider_id && state.coverage === options.coverage) {
     showSavedCoverage(selectedProfile ? gameCharacter?.coverage : state.last_coverage);
   }
-  if (!linkedCharacter) return message('noSavedCharacter');
+  if (!linkedCharacter) {
+    if (outcome.hidden_character) {
+      element('removed-profiles').open = true;
+      return message('currentProfileHidden', {name: fullName(outcome.hidden_character)});
+    }
+    return message('noSavedCharacter');
+  }
   const name = fullName(linkedCharacter);
   if (selectedProfile && gameCharacter && selectedProfile !== linkedCharacter.id) {
     return message('refreshedPinnedCharacter', {name, selected: fullName(gameCharacter)});
   }
+  if (outcome.restored) return message('currentProfileRestored', {name});
   return message(previous === linkedCharacter.id ? 'sameSavedCharacter' : 'lastSavedCharacter', {name});
 }, message('checkingSavedCharacter')));
 
@@ -700,7 +724,7 @@ function showCharacter(character) {
     element('saved-recording-count').hidden = !Number.isSafeInteger(count);
   }
   element('character-hint').hidden = Boolean(gameCharacter);
-  element('remove-profile').hidden = !details?.selectable || selectedProfile !== details.id;
+  element('profile-actions').hidden = !details?.selectable;
   updateFetchButtons();
 }
 
