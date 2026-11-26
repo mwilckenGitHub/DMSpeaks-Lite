@@ -32,21 +32,27 @@ def write_json(path, data):
 
 
 def update_program(payload, support, work, previous):
-    """Replace packaged game images with this project's reproducible artwork."""
+    """Refresh the packaged UI and regenerate its verification records."""
     source = payload / "source"
-    source_art = ROOT / "source"
+    source_root = ROOT / "source"
     changed = {}
-    paths = sorted((*source.glob("lite_web/*.png"), *source.glob("lite_addon/Icons/*.tga")))
-    for path in paths:
-        relative = path.relative_to(source)
-        path.write_bytes((source_art / relative).read_bytes())
+    paths = [path.relative_to(source) for path in source.glob("lite_web/*.png")]
+    paths.extend(path.relative_to(source) for path in source.glob("lite_addon/Icons/*.tga"))
+    paths.extend(Path(name) for name in (
+        "lite_addon/Settings.lua",
+        "lite_web/desktop-help.js",
+        "lite_web/menu-help-en.js",
+    ))
+    for relative in sorted(paths):
+        path = source / relative
+        path.write_bytes((source_root / relative).read_bytes())
         changed["source/" + relative.as_posix()] = path
     ffmpeg = payload / "runtime/bin/ffmpeg.exe"
     icon = work / "waveform.ico"
     placeholder = work / "placeholder.jpg"
     probes = (
-        (source_art / "lite_web/dmspeaks-mark.png", icon, ("-c:v", "bmp", "-pix_fmt", "bgra")),
-        (source_art / "lite_web/unknown.png", placeholder, ("-c:v", "mjpeg")),
+        (source_root / "lite_web/dmspeaks-mark.png", icon, ("-c:v", "bmp", "-pix_fmt", "bgra")),
+        (source_root / "lite_web/unknown.png", placeholder, ("-c:v", "mjpeg")),
     )
     for graphic, target, options in probes:
         subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-i", graphic,
@@ -54,9 +60,6 @@ def update_program(payload, support, work, previous):
     for path in sorted(source.glob("lite_web/blizzard-avatars/*.jpg")):
         path.write_bytes(placeholder.read_bytes())
         changed["source/" + path.relative_to(source).as_posix()] = path
-    settings = source / "lite_addon/Settings.lua"
-    settings.write_bytes((source_art / "lite_addon/Settings.lua").read_bytes())
-    changed["source/lite_addon/Settings.lua"] = settings
 
     refresh = work / "runtime-update.zip"
     with ZipFile(support / "runtime-update.zip") as archive:

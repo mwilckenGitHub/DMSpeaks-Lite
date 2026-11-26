@@ -6,13 +6,17 @@ DMSpeaks Lite builds on **Spoken by rustykey (Rusty Key)**. Spoken provides the 
 
 GPT-6 Codex assisted with development, packaging, and testing.
 
-## First-time installation
+## Install on Windows
 
-For Windows x64 with English Spoken voice packs. Download the Setup executable from the [Beta 12 release](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12).
+The latest Windows beta is **Beta 12.1**. It adds a voice-pack picker to Beta 12. [Release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.1)
 
-Install Spoken and the English Spoken voice packs you want in WoW first. Run the downloaded Setup executable and select the same WoW folder. Setup uses the matching Lite Alliance, Horde, Shared, and Gossip playback packs for the Spoken packs it finds there. It also installs the Lite add-on and its common name data.
+1. Close WoW. Make sure **Spoken** and **Spoken Quests** are installed in World of Warcraft Forever. [Get Spoken](https://www.curseforge.com/wow/addons/spoken)
+2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.1/DMSpeaks-Lite-Setup-Windows-x64.exe)
+3. Review the license and credits, then select your WoW Forever folder if prompted.
+4. On **Choose voice packs**, check the English Lite collections you want. Choose **Alliance quests**, **Horde quests**, **Shared quests**, or **Gossip**, in any combination. The folder view updates as you make your choices. Setup includes Lite and the common name data automatically.
+5. Choose your shortcuts, select **Install**, then select **Finish** to open Lite.
 
-Setup downloads the matching Lite ZIPs from the Beta 12 release. To install with downloaded copies, keep the ZIPs beside Setup and leave them zipped. In WoW, use **DMSpeaks Lite → Installed content** to enable or disable installed packs. Missing packs have disabled checkboxes.
+To add packs later, run Setup again. Clearing a box skips that pack download and keeps any copy already installed. In WoW, open **DMSpeaks Lite → Installed content** to see and enable the installed packs. For an offline install, leave the required ZIPs beside Setup. [Optional ZIP downloads](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12)
 
 Lite connects when Spoken provides the playback functions it uses, regardless of version number. It verifies the installed English recording and caption before selecting a matching plan. [Spoken add-on and voice packs](https://www.curseforge.com/wow/addons/spoken#description)
 
@@ -38,9 +42,13 @@ The download’s SHA-256 is `529860e968c2f2eee6fa621689cd4ecd4a692e11aaafea5f51d
 
 The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitHub/DMSpeaks-Lite/main/downloads/DMSpeaks-Lite-Northshire-Decoder-Update-Windows-x64.zip) is also available.
 
-## Sync a new character
+## Fetch your first character's name
 
-On first login, choose **Reload UI** in the add-on prompt, or type `/reload` in WoW chat. In the Windows companion, select **Refresh character**, choose your coverage, and start the fetch. When Lite reports your new recordings are ready, reload WoW to use them.
+1. In Fish Audio, sign in and choose **Get your API key**. Copy the key when it appears. [Fish Audio Get Started](https://fish.audio/app/developers/get-started/)
+2. In Lite, open **Options → Speech settings** and choose **Fish Audio (free)**. Paste the key into **Fish API token**, then choose **Save Fetch Settings → Test Saved Connection**.
+3. Log in to your character and type `/reload` in WoW chat. In Lite, choose **Refresh character**, leave **Starting area** selected, and start the fetch. Reload WoW again after the fetch finishes.
+
+Fish Audio lists S2.1 Pro Free through November 30, 2026. [Current Fish Audio offer](https://fish.audio/developers/#pricing)
 
 ## License
 

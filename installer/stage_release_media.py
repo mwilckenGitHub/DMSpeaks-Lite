@@ -16,6 +16,7 @@ GAME = "DMSpeaks-WoW.zip"
 REFERENCES = "DMSpeaks-Lite-Name-Data.zip"
 MEMBERS = ("embedded-catalog.zip", "prefix-data.zip")
 COLLECTIONS = ("Alliance", "Horde", "Shared", "Gossip")
+PACK_MASKS = range(1 << len(COLLECTIONS))
 
 
 def playback_zip(collection):
@@ -73,12 +74,28 @@ def obtain(name, selected, cache, release):
     return cached
 
 
-def stage(game, wow, cache, work, release):
+def installed_collections(addons, prefix):
+    return {name for name in COLLECTIONS
+            if (addons / (prefix + name) / (prefix + name + ".toc")).is_file()}
+
+
+def select_collections(addons, pack_mask, include_installed):
+    if pack_mask is None:
+        selected = installed_collections(addons, "SpokenQuestsAudio")
+        if not selected:
+            raise ValueError("Choose the Lite voice packs in Setup, or specify /VOICEPACKS=0 for a silent install without optional packs.")
+    else:
+        if pack_mask not in PACK_MASKS:
+            raise ValueError("The Lite voice pack selection is invalid.")
+        selected = {name for index, name in enumerate(COLLECTIONS) if pack_mask & (1 << index)}
+    if include_installed:
+        selected.update(installed_collections(addons, "DMSpeaksPersonalized"))
+    return [name for name in COLLECTIONS if name in selected]
+
+
+def stage(game, wow, cache, work, release, *, pack_mask=None, include_installed=False):
     addons = wow / "Interface" / "AddOns"
-    collections = [name for name in COLLECTIONS
-                   if (addons / f"SpokenQuestsAudio{name}" / f"SpokenQuestsAudio{name}.toc").is_file()]
-    if not collections:
-        raise ValueError("Install an English Spoken voice pack in this WoW folder, then run Setup again.")
+    collections = select_collections(addons, pack_mask, include_installed)
     # Repair can use a different directory after the player moves the downloads.
     references = obtain(REFERENCES, game.with_name(REFERENCES), cache, release)
     packs = {}
@@ -102,10 +119,14 @@ def main():
     parser.add_argument("wow", type=Path)
     parser.add_argument("cache", type=Path)
     parser.add_argument("work", type=Path)
+    parser.add_argument("--pack-mask", type=int, choices=(-1, *PACK_MASKS), default=-1)
+    parser.add_argument("--include-installed", action="store_true")
     args = parser.parse_args()
     try:
         release = json.loads((args.work / "lite-media.json").read_bytes())
-        stage(args.game, args.wow, args.cache, args.work, release)
+        stage(args.game, args.wow, args.cache, args.work, release,
+              pack_mask=None if args.pack_mask == -1 else args.pack_mask,
+              include_installed=args.include_installed)
     except (OSError, ValueError, BadZipFile) as error:
         parser.exit(1, f"{error}\n")
 

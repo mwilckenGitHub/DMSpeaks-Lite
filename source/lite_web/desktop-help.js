@@ -5,7 +5,13 @@ const desktopHelp = (() => {
   const contents = element('help-content');
   const topics = [
     ['deskStart', ['deskStartOne', 'deskStartTwo', 'deskStartThree'], ['deskOpenProfiles', 'characters']],
-    ['deskProviders', ['deskProviderOne', 'deskProviderTwo', 'deskProviderThree'], ['deskOpenSpeech', 'connection-settings']],
+    ['deskProviders', [
+      ['h4', 'deskFishFreeTitle'], 'deskFishFreeKey',
+      ['a', 'deskFishFreeLink', 'https://fish.audio/app/developers/get-started/'],
+      'deskFishFreeConnect', 'deskFishFreeAvailability',
+      ['a', 'deskFishFreeDetails', 'https://fish.audio/developers/#pricing'],
+      ['h4', 'deskOtherProviders'], 'deskProviderOne', 'deskProviderTwo', 'deskProviderThree',
+    ], ['deskOpenSpeech', 'connection-settings']],
     ['deskLocalSpeech', [
       'deskLocalIntro', ['h4', 'deskLocalHost'], 'deskLocalSpark', 'deskLocalGpu',
       ['h4', 'deskLocalServer'], 'deskLocalServe', 'deskLocalApi',

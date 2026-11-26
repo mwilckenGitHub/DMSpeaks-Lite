@@ -46,7 +46,9 @@ The source UI uses project-drawn waveform icons. Where an installation has a mat
 
 Use the verified compact Beta 12 kit and its build receipt as the input to `packaging/windows-setup/build_spoken_release.py`. Pass the kit directory as `--previous`, the SHA-256 of its `verified.json` as `--previous-sha256`, the Windows tools directory as `--tools`, and a new directory as `--output`. Add `--release-tag` when Setup should look for missing ZIPs on GitHub. The output receipt identifies each asset by size and SHA-256.
 
-Setup requires Spoken and the English Spoken packs that the player wants to use. It installs the common Lite files and name data, then installs the matching Lite Alliance, Horde, Shared, or Gossip archives for the Spoken packs already in the selected game folder. It checks local ZIPs first and downloads missing ZIPs only when a release tag was supplied at build time.
+Setup requires Spoken in the selected game folder. Its voice pack page lets the player choose which English Lite packs to install. The common Lite files and name data are included in every installation. Existing Lite packs are kept when their boxes are cleared. Setup checks local ZIPs first and downloads missing ZIPs only when a release tag was supplied at build time.
+
+For a silent install, use `/VOICEPACKS=0` for the common files alone, or add the values of the packs you want. Alliance is 1, Horde is 2, Shared is 4, and Gossip is 8. For example, `/VOICEPACKS=5` installs Alliance and Shared. Silent invocations without this option continue to select the packs that match the installed Spoken voice packs.
 
 ## Build the historical Windows Setup and Recovery
 

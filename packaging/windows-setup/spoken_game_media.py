@@ -65,7 +65,7 @@ class ReleaseGameArchive:
 @contextmanager
 def release_archive_parts(game, catalog, manifest):
     paths = json.loads(manifest.read_bytes())
-    if not isinstance(paths, dict) or not paths or paths.keys() - RELEASE_PACK_ROOTS.keys():
+    if not isinstance(paths, dict) or paths.keys() - RELEASE_PACK_ROOTS.keys():
         raise ValueError("The selected Lite voice packs are invalid.")
     with ExitStack() as stack:
         def open_part(path, checksum):
