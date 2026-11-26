@@ -17,7 +17,7 @@
   let configured;
   let changingPlayback = false;
   const menus = [
-    ['fileMenu', 'f', [['manageProfiles', () => element('remove-profiles').click()],
+    ['fileMenu', 'f', [['manageProfiles', manageProfiles],
       ['deskImport', () => element('card-file').click()], ['deskExport', exportDialog]]],
     ['viewMenu', 'v', [['profilesItem', () => navigate('characters')], ['deskFind', () => navigate('character-search')],
       ['deskReviewTitle', () => navigate('saved-recordings')], ['fetchItem', () => navigate('name-fetch')]]],
@@ -32,6 +32,12 @@
   const heads = [];
   let typed = '';
   let typedAt = 0;
+  function manageProfiles() {
+    const activeProfiles = element('remove-profiles');
+    if (!activeProfiles.hidden) activeProfiles.click();
+    else if (!element('removed-profiles').hidden) navigate('removed-profiles');
+  }
+
   function navigate(id) {
     const panel = element(id);
     if (id === 'character-search' || id === 'saved-recordings') {
@@ -53,7 +59,7 @@
     }
     if (panel.tagName === 'DETAILS') panel.open = true;
     const target = panel.querySelector('summary,h2');
-    target.tabIndex = -1;
+    if (target.tagName !== 'SUMMARY') target.tabIndex = -1;
     target.focus();
     target.scrollIntoView({block: 'nearest'});
   }
@@ -104,7 +110,7 @@
       const item = node('button', '', message(label));
       item.type = 'button';
       item.setAttribute('role', label === 'deskPlaybackCommand' ? 'menuitemcheckbox' : 'menuitem');
-      if (label === 'manageProfiles' && element('remove-profiles').hidden) {
+      if (label === 'manageProfiles' && element('remove-profiles').hidden && element('removed-profiles').hidden) {
         item.setAttribute('aria-disabled', 'true');
       }
       if (label === 'deskPlaybackCommand') {
