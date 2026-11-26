@@ -12,7 +12,7 @@ MODULES = (
     "lite_clip_bounds", "lite_context_routes", "lite_fetch_timing",
     "lite_legacy_clip_bounds", "lite_portable_io", "lite_races",
     "lite_source_identity", "name_placeholder_audio", "pcm_input", "phoneme_alignment", "phoneme_process",
-    "phonetic_join_profiles", "project_recovery", "quiet_boundaries", "vorbis_pcm",
+    "phonetic_join_profiles", "project_recovery", "quiet_boundaries", "spoken_join_audio", "vorbis_pcm",
 )
 
 

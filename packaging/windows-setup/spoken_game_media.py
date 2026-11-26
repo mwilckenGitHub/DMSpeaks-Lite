@@ -64,7 +64,7 @@ class ReleaseGameArchive:
 
 def reused_media_entries(addons, entries, revision, progress):
     """Update the program-owned overlay without rescanning a completed media installation."""
-    if RELEASE_SETTINGS is None or not revision:
+    if not RELEASE_OVERLAYS or not revision:
         return None
     marker = addons.parent / ".dmspeaks-setup-version.txt"
     if is_link(marker) or not marker.is_file() or marker.stat().st_size > 80:
@@ -75,10 +75,9 @@ def reused_media_entries(addons, entries, revision, progress):
     # A completed install is the evidence that individual voice files were
     # placed. Check each selected pack, the indexes, and the catalog before
     # taking the fast path. Repair retains the full per-file scan.
-    settings = PurePosixPath("DMSpeaksLite/Settings.lua")
     probes, representatives, overlay = [], {}, []
     for info, relative in entries:
-        if relative == settings:
+        if relative.as_posix() in RELEASE_OVERLAYS:
             overlay.append((info, relative))
         elif relative.suffix == ".toc" or relative == CATALOG or relative.name == "DialogueIndex.lua":
             probes.append((info, relative))
@@ -123,23 +122,27 @@ def release_archive_parts(game, catalog, manifest):
             sources.append((open_part(Path(path), RELEASE_HASHES[name]), allowed))
             roots.extend(allowed)
         release = ReleaseGameArchive(sources, roots)
-        if RELEASE_SETTINGS is not None:
+        if RELEASE_OVERLAYS:
             from io import BytesIO
 
-            name = "DMSpeaksLite/Settings.lua"
-            if name not in release.entries:
+            settings = "DMSpeaksLite/Settings.lua"
+            if settings in RELEASE_OVERLAYS and settings not in release.entries:
                 raise ValueError("The verified Lite archive is missing its settings file.")
             replacement = stack.enter_context(ZipFile(BytesIO(), "w"))
-            replacement.writestr(name, RELEASE_SETTINGS)
-            release.entries[name] = (replacement, replacement.getinfo(name))
+            for name, content in RELEASE_OVERLAYS.items():
+                replacement.writestr(name, content)
+                release.entries[name] = (replacement, replacement.getinfo(name))
         yield release
 
 
 '''
 
 
-def placement_script(source, output, hashes, *, settings_overlay=None, media_revisions=()):
+def placement_script(source, output, hashes, *, settings_overlay=None, game_overlay=None, media_revisions=()):
     text = source.read_text(encoding="utf-8")
+    overlays = dict(game_overlay or {})
+    if settings_overlay is not None:
+        overlays["DMSpeaksLite/Settings.lua"] = settings_overlay
 
     def replace(before, after):
         nonlocal text
@@ -149,7 +152,7 @@ def placement_script(source, output, hashes, *, settings_overlay=None, media_rev
 
     replace("class SplitGameArchive:", f"RELEASE_HASHES = {hashes!r}\n"
             f"RELEASE_CORE_ROOTS = {CORE_ROOTS!r}\nRELEASE_PACK_ROOTS = {PACK_ROOTS!r}\n"
-            f"RELEASE_SETTINGS = {settings_overlay!r}\nRELEASE_MEDIA_REVISIONS = {media_revisions!r}\n\n\n"
+            f"RELEASE_OVERLAYS = {overlays!r}\nRELEASE_MEDIA_REVISIONS = {media_revisions!r}\n\n\n"
             + PARTS + "class SplitGameArchive:")
     replace("for name in reversed(ROOTS):", 'for name in reversed(state.get("roots", ROOTS)):')
     replace("def checked_archive(archive, progress=None, *, catalog=None):",

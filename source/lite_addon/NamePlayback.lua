@@ -439,8 +439,23 @@ local function BuildSequence(entry, clip, fallback, skipRepair, offline)
     return clips, samples, repair, originalCuts ~= nil
 end
 
--- Captions use the logical slot duration. WoW plays each physical Ogg once in succession.
-local function PlaybackPieces(slots)
+local function JoinRepairAt(parts, index, repairs)
+    for _, repair in ipairs(repairs) do
+        local matches = true
+        for offset, expected in ipairs(repair.parts) do
+            local piece = parts[index + offset - 1]
+            if not piece or piece.samples ~= expected.samples or piece.path ~= basePath .. expected.path then
+                matches = false
+                break
+            end
+        end
+        if matches then return repair end
+    end
+end
+
+-- Captions use the logical slot duration. Some reviewed adjacent clips share
+-- one physical file to retain their decoded boundaries without a game timer.
+local function PlaybackPieces(slots, revision)
     local pieces = {}
     for _, slot in ipairs(slots) do
         local prefix, suffix = slot.prefix, slot.suffix
@@ -460,7 +475,25 @@ local function PlaybackPieces(slots)
             pieces[#pieces + 1] = slot
         end
     end
-    return pieces
+    local repairs = addon.infillJoinRepairs and addon.infillJoinRepairs[revision]
+    if not repairs then return pieces end
+    local repaired, index = {}, 1
+    while index <= #pieces do
+        local replacement = JoinRepairAt(pieces, index, repairs)
+        if replacement then
+            local originals = {}
+            for offset = 1, #replacement.parts do
+                originals[offset] = pieces[index + offset - 1]
+            end
+            repaired[#repaired + 1] = { path = basePath .. replacement.path, start = pieces[index].start,
+                samples = replacement.samples, originalPieces = originals }
+            index = index + #replacement.parts
+        else
+            repaired[#repaired + 1] = pieces[index]
+            index = index + 1
+        end
+    end
+    return repaired
 end
 
 -- Move stock caption starts through the same source-to-playback timeline as the audio.
@@ -544,7 +577,7 @@ local function PrepareStandalone(clip, entry, fallback, skipRepair)
     local clips, total, repair, hasOriginalCuts = BuildSequence(entry, clip, fallback, skipRepair, offline)
     if not clips then return end
     local englishCaptions = EnglishCaptions(language)
-    prepared[clip] = { clips = PlaybackPieces(clips), rate = entry.rate, route = entry, shareOffline = offline, repair = repair, hasOriginalCuts = hasOriginalCuts,
+    prepared[clip] = { clips = PlaybackPieces(clips, entry.storeRevision), rate = entry.rate, route = entry, shareOffline = offline, repair = repair, hasOriginalCuts = hasOriginalCuts,
                        standalone = true, englishCaptions = englishCaptions,
                        stockFileName = clip.fileName, stockFilePath = clip.filePath,
                        stockModule = clip.module, stockLanguage = clip.language,
@@ -833,7 +866,7 @@ local function PrepareSequence(clip, entry, useStockTimings, scopedMatch, fallba
     local clips, total, repair, hasOriginalCuts = BuildSequence(entry, clip, fallback, skipRepair, offline)
     if not clips then return end
     local englishCaptions = EnglishCaptions(language)
-    prepared[clip] = { clips = PlaybackPieces(clips), rate = entry.rate, route = entry, shareOffline = offline, repair = repair, hasOriginalCuts = hasOriginalCuts,
+    prepared[clip] = { clips = PlaybackPieces(clips, entry.storeRevision), rate = entry.rate, route = entry, shareOffline = offline, repair = repair, hasOriginalCuts = hasOriginalCuts,
                        useStockTimings = useStockTimings, scopedMatch = scopedMatch,
                        englishCaptions = englishCaptions,
                        stockLength = clip.length, stockTimings = clip.timings,
@@ -1017,7 +1050,26 @@ if hookEnqueue and events.QuestFollowup and next(followupsByBroadcast)
     end
 end
 
+local function RepairedSoundAvailable(piece, channel)
+    if not testStock(sounds, piece, channel) then return false end
+    for _, original in ipairs(piece.originalPieces) do
+        if not testStock(sounds, original, channel) then return false end
+    end
+    return true
+end
+
 local function PiecesAvailable(parts, channel, missingChoices, missingAlternates)
+    local index = 1
+    while index <= #parts do
+        local piece = parts[index]
+        if piece.originalPieces and not RepairedSoundAvailable(piece, channel) then
+            table.remove(parts, index)
+            for offset = #piece.originalPieces, 1, -1 do
+                table.insert(parts, index, piece.originalPieces[offset])
+            end
+        end
+        index = index + 1
+    end
     local ready = true
     for _, piece in ipairs(parts) do
         if not testStock(sounds, piece, channel) then

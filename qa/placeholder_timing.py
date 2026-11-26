@@ -19,7 +19,7 @@ class PlaceholderTimingTest(unittest.TestCase):
 
     def evidence(self, *, onset=.92, grammar=(.79, .49, .79), keyword=(.78, .50, .86),
                  grammar_phones="AH D V EH N CH ER ER", keyword_phones="AH D V EH N CH ER ER",
-                 following_name=None):
+                 following_name=None, following_score=.26, baseline=None):
         searches = []
 
         def decode(config, dictionary, search, wave):
@@ -30,10 +30,14 @@ class PlaceholderTimingTest(unittest.TestCase):
             if search[0] == "-jsgf" and following_name is not None:
                 placeholder = next((key for key, value in entries if key.startswith("a") and value == phones), None)
                 if placeholder is None:
-                    return []
+                    if baseline is None:
+                        return []
+                    label = next(key for key, value in entries if key.startswith("l") and value == phones)
+                    begin, duration, score = baseline
+                    return [{"t": label, "b": begin, "d": duration, "p": score}]
                 target = next(key for key, value in entries if key.startswith("t") and value == "T EH S T N EY M")
                 return [{"t": placeholder, "b": begin, "d": duration, "p": score},
-                        {"t": target, "b": following_name, "d": .88, "p": .26}]
+                        {"t": target, "b": following_name, "d": .88, "p": following_score}]
             label = next(key for key, value in entries if value == phones)
             return [{"t": label, "b": begin, "d": duration, "p": score}]
 
@@ -85,6 +89,26 @@ class PlaceholderTimingTest(unittest.TestCase):
                                          keyword=(.60, .63, .91), following_name=1.48)
         self.assertIsNone(result)
         self.assertEqual(searches, ["-jsgf", "-jsgf"])
+
+    def test_extra_placeholder_with_two_whole_word_decodes_and_keyword_onset(self):
+        result, searches = self.evidence(
+            onset=.955, grammar=(.46, .65, .84), baseline=(.46, .57, .86), following_name=1.11,
+            following_score=.67, keyword=(.47, .24, .88), keyword_phones="AH D V EH N",
+        )
+        self.assertEqual(searches, ["-jsgf", "-kws", "-jsgf", "-kws"])
+        self.assertEqual(result["supporting_phones"], "AH D V EH N")
+
+    def test_keyword_onset_alone_does_not_establish_an_extra_word(self):
+        measurements = dict(
+            onset=.955, grammar=(.46, .65, .84), baseline=(.46, .57, .86), following_name=1.11,
+            following_score=.67, keyword=(.47, .24, .88), keyword_phones="AH D V EH N",
+        )
+        for variation in (
+            {"baseline": None}, {"baseline": (.46, .40, .86)}, {"following_score": .55},
+            {"keyword": (.47, .24, .81)}, {"keyword_phones": "V EH N"},
+        ):
+            with self.subTest(variation=variation):
+                self.assertIsNone(self.evidence(**(measurements | variation))[0])
 
 
 if __name__ == "__main__":

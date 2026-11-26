@@ -212,6 +212,25 @@ def _extra_syllable(ogg, onset, phones, config, wave, dictionary, grammar, leade
                 vowel_start_seconds=round(vowel_at,3), next_frication_seconds=round(name_at,3),
                 name_start_sample=onset)
 
+def _corroborated_inserted_onset(candidate, name, baseline, keyword, fragment, target_phones, onset):
+    """Match the stock onset when both grammars agree on the whole word."""
+    if (baseline is None or fragment not in _KEYWORDS[:2] or fragment in target_phones
+            or min(candidate["p"], baseline["p"]) < .80 or name["p"] < .60 or keyword["p"] < .85):
+        return False
+    end = candidate["b"] + candidate["d"]
+    baseline_end = baseline["b"] + baseline["d"]
+    return (
+        abs(baseline["b"] - candidate["b"]) <= .060
+        and abs(baseline_end - end) <= .120
+        and abs(keyword["b"] - candidate["b"]) <= .060
+        and .18 <= keyword["d"] <= .36
+        and keyword["b"] + keyword["d"] <= min(end, baseline_end) - .15
+        and max(end, baseline_end) <= name["b"] + .035
+        and name["b"] - baseline_end <= .160
+        and abs(name["b"] - onset) <= .100
+    )
+
+
 def placeholder_evidence(ogg, words, name_start_sample, config, *, pronunciations=None):
     """Return corroborated acoustic evidence, or None for a clean/ambiguous clip.
 
@@ -237,6 +256,7 @@ def placeholder_evidence(ogg, words, name_start_sample, config, *, pronunciation
         extra = _extra_syllable(ogg, name_start_sample, phones, config, wave, dictionary, grammar, leaders)
         if extra:
             return extra
+        baseline_stock = None
         # Preserve the original single-name search before testing for an inserted word.
         for allow_inserted in (False, True):
             insertions = {f"a{i}": value for i, value in enumerate(_STOCK[:2])}
@@ -263,6 +283,8 @@ def placeholder_evidence(ogg, words, name_start_sample, config, *, pronunciation
                 if not candidate or not candidate["t"].startswith("l"):
                     continue
                 hypothesis = choices[candidate["t"]]
+                if hypothesis in _STOCK[:2]:
+                    baseline_stock = candidate
             whole = hypothesis in _STOCK
             # A competing short name can lower the grammar score even when the
             # entire stock word is audible. In that range require both searches
@@ -285,8 +307,10 @@ def placeholder_evidence(ogg, words, name_start_sample, config, *, pronunciation
                     and abs(word_end - (candidate["b"] + candidate["d"])) <= .080
                 )
                 if inserted:
-                    # Corroborate the whole extra word independently before the name.
-                    if not complete_agreement or word_end > name["b"] + .035:
+                    if word_end > name["b"] + .035:
+                        continue
+                    if not complete_agreement and not _corroborated_inserted_onset(
+                            candidate, name, baseline_stock, word, fragment, " ".join(phones[-1]), onset):
                         continue
                 elif not onset - .10 <= word["b"] <= onset + .20:
                     # A forced name alignment can place the onset inside a substitution.

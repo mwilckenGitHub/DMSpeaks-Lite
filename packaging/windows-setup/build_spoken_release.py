@@ -17,6 +17,7 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build as native
+from join_repair_overlay import load_join_overlay
 from spoken_game_media import PACK_ROOTS, placement_script, split_game
 
 
@@ -59,6 +60,7 @@ def update_program(payload, support, work, previous, *, prior_desktop=None):
     paths.extend(path.relative_to(source) for path in source.glob("lite_addon/Icons/*.tga"))
     paths.extend(Path(name) for name in (
         "english_name_pronunciation.py",
+        "lite_addon/NamePlayback.lua",
         "lite_addon/Settings.lua",
         "lite_game_ingress.py",
         "lite_name_settings.py",
@@ -148,24 +150,37 @@ def page(target, files):
     return target
 
 
-def update_game_ownership(support, work, placement, settings, *, previous_settings=None):
+def update_game_ownership(support, work, placement, settings, *, previous_settings=None,
+                          overlay=None, previous_overlay=None):
     original = support / "stock-files.json.gz"
     inventory = json.loads(gzip.decompress(original.read_bytes()))
-    settings_hashes = inventory["current"]["DMSpeaksLite/Settings.lua"]
-    admitted = [native.digest(settings)]
+    hashes = {"DMSpeaksLite/Settings.lua": native.digest(settings)}
+    hashes.update({name: sha256(data).hexdigest() for name, data in (overlay or {}).items()})
+    previous = dict(previous_overlay or {})
     if previous_settings is not None:
-        admitted.append(previous_settings)
-    for settings_hash in admitted:
-        if settings_hash not in settings_hashes:
-            settings_hashes.append(settings_hash)
+        previous["DMSpeaksLite/Settings.lua"] = previous_settings
+    for name, updated in hashes.items():
+        current = inventory["current"].setdefault(name, [])
+        for allowed in (updated, previous.get(name)):
+            if allowed and allowed not in current:
+                current.append(allowed)
     target = work / original.name
     target.write_bytes(gzip.compress(json.dumps(inventory, sort_keys=True).encode(), mtime=0))
     text = placement.read_text(encoding="utf-8")
-    pin = native.digest(original)
-    if text.count(pin) != 1:
-        raise ValueError("The verified game placement does not bind its ownership manifest.")
-    placement.write_text(text.replace(pin, native.digest(target)), encoding="utf-8", newline="\n")
-    return target
+    old_files = support / "addon-files.txt.gz"
+    files = old_files
+    if overlay:
+        owned = set(gzip.decompress(old_files.read_bytes()).decode("utf-8").splitlines())
+        owned.update(overlay)
+        files = work / old_files.name
+        files.write_bytes(gzip.compress(("\n".join(sorted(owned)) + "\n").encode("utf-8"), mtime=0))
+    for before, updated in ((original, target), (old_files, files)):
+        pin = native.digest(before)
+        if text.count(pin) != 1:
+            raise ValueError("The verified game placement does not bind its ownership records.")
+        text = text.replace(pin, native.digest(updated), 1)
+    placement.write_text(text, encoding="utf-8", newline="\n")
+    return target, files
 
 
 def verify_catalog_provenance(source, embedded_catalog, reused_media=None):
@@ -194,6 +209,7 @@ def build(args):
     reuse = None
     previous_settings = None
     media_revisions = ()
+    overlay, previous_overlay = {}, {}
     if args.reuse_media:
         media_receipt = args.reuse_media / "verified.json"
         native.require(media_receipt, args.reuse_media_sha256)
@@ -208,6 +224,11 @@ def build(args):
         media_revisions = PUBLISHED_MEDIA_REVISIONS if fingerprint == PUBLISHED_MEDIA_SET else (reuse["cleanup_revision"],)
         with ZipFile(args.reuse_media / "Install files" / native.GAME) as game:
             previous_settings = sha256(game.read("DMSpeaksLite/Settings.lua")).hexdigest()
+        if args.join_overlay:
+            native.require(args.join_overlay, args.join_overlay_sha256)
+            archives = [args.reuse_media / "Install files" / name for name in (native.GAME, *PACK_ROOTS)]
+            overlay, previous_overlay = load_join_overlay(
+                args.join_overlay, archives, ROOT / "source/lite_addon/NamePlayback.lua")
     files = args.previous / "Install files"
     for name in (native.BASE_SETUP, native.GAME):
         native.require(files / name, previous["files"][name]["sha256"])
@@ -247,9 +268,11 @@ def build(args):
         placement = placement_script(support / "install_addon.py", work / "install_addon.py",
                                      {name: info["files"][name]["sha256"] for name in (native.GAME, *PACK_ROOTS)},
                                      settings_overlay=settings_file.read_bytes() if reuse else None,
+                                     game_overlay=overlay,
                                      media_revisions=media_revisions)
-        stock = update_game_ownership(support, work, placement, settings_file,
-                                      previous_settings=previous_settings)
+        stock, game_files = update_game_ownership(support, work, placement, settings_file,
+                                                 previous_settings=previous_settings, overlay=overlay,
+                                                 previous_overlay=previous_overlay)
         if args.media_tag:
             info["download_base"] = ("https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/"
                                      + args.media_tag)
@@ -289,7 +312,7 @@ def build(args):
             MAINTENANCE_PYTHON_FILES=python, RUNTIME_PRUNER=pruner, RUNTIME_OWNERS=ownership,
             END_USER_AGREEMENT=page(recipe / "agreement.txt", [agreement]),
             LICENSE_NOTICES=page(recipe / "notices.txt", notices),
-            PLACEMENT=placement, OWNERS=support / "addon-files.txt.gz",
+            PLACEMENT=placement, OWNERS=game_files,
             STOCK_OWNERS=stock, COMPATIBILITY_ICON=icon, LEGACY_ICON=icon,
             REFRESH=support / "refresh_runtime.py", OPEN_LITE_SCRIPT=ROOT / "installer/open_lite.py",
             UPDATE_SCRIPT=support / "apply_beta_update.py", RUNTIME_DELTA=refresh, EXTERNAL_MEDIA=media,
@@ -316,6 +339,11 @@ def build(args):
         result = {"files": {p.name: record(p) for p in sorted(product.iterdir())},
                   "registered_build": previous["registered_build"], "desktop_build": build_id,
                   "cleanup_revision": setup_id, "media": info, "prior_release": args.previous_sha256}
+        if overlay:
+            result["join_repairs"] = {
+                "bundle_sha256": args.join_overlay_sha256,
+                "files": {name: sha256(data).hexdigest() for name, data in sorted(overlay.items())},
+            }
         if any(r["bytes"] >= 2**31 for r in result["files"].values()):
             raise ValueError("A release asset exceeds GitHub's per-file size limit.")
         write_json(args.output / "verified.json", result)
@@ -329,11 +357,15 @@ if __name__ == "__main__":
     parser.add_argument("--previous-sha256", required=True)
     parser.add_argument("--reuse-media", type=Path, help="Verified release folder containing the existing ZIPs")
     parser.add_argument("--reuse-media-sha256", help="SHA-256 of the existing release receipt")
+    parser.add_argument("--join-overlay", type=Path, help="Verified add-on overlay for reviewed spoken joins")
+    parser.add_argument("--join-overlay-sha256", help="SHA-256 of the reviewed spoken join overlay")
     parser.add_argument("--media-tag", "--release-tag", dest="media_tag",
                         help="Public GitHub release tag hosting the matching media ZIPs")
     args = parser.parse_args()
     if args.reuse_media and not (args.reuse_media_sha256 and args.media_tag):
         parser.error("--reuse-media requires --reuse-media-sha256 and --media-tag")
+    if bool(args.join_overlay) != bool(args.join_overlay_sha256) or (args.join_overlay and not args.reuse_media):
+        parser.error("A spoken join overlay requires its SHA-256 and the verified media it updates.")
     if args.media_tag and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.media_tag):
         parser.error("Use a simple GitHub media release tag.")
     build(args)

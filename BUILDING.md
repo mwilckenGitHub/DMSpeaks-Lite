@@ -48,6 +48,8 @@ Use the verified compact Beta 12 kit and its build receipt as the input to `pack
 
 When the six ZIPs match an existing published media set by SHA-256, build Setup with that media tag and attach just the new installer to its software release. Keep the media tag and assets available while installers reference them. If a ZIP changes, publish a matching set and point Setup at its tag.
 
+To include reviewed audio joins with the same release media, supply the measured overlay ZIP with `--join-overlay` and its SHA-256 with `--join-overlay-sha256`. Setup verifies the source clips and the overlay's file hashes. The build receipt lists the installed repair files.
+
 Setup requires Spoken in the selected game folder. Its voice pack page lets the player choose which English Lite packs to install. The common Lite files and name data are included in every installation. Existing Lite packs are kept when their boxes are cleared. Setup checks local ZIPs first, then downloads the missing common files and selected packs from the release supplied at build time.
 
 Before pointing the README at a new release, verify the public installer and the ZIPs at its media tag against the build receipt. Run the downloadable Setup with an empty cache and no adjacent ZIPs. Check that a one-pack selection downloads just the common files and that pack, and that an all-packs selection can install every archive.
