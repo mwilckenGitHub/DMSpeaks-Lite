@@ -8,7 +8,7 @@ GPT-6 Codex assisted with development, packaging, and testing.
 
 ## Install on Windows
 
-The latest Windows beta is **Beta 12.5**. Setup downloads the files you select from the [DMSpeaks Lite WoW Audio Repository](#dmspeaks-lite-wow-audio-repository). [Beta 12.5 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.5)
+The latest Windows beta is **Beta 12.5**. Setup downloads the files you select from the [DMSpeaks Lite WoW Audio Repository](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/wow-audio-repository). [Beta 12.5 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.5)
 
 1. Close WoW. Make sure **Spoken** and **Spoken Quests** are installed in World of Warcraft Forever. [Get Spoken](https://www.curseforge.com/wow/addons/spoken)
 2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.5/DMSpeaks-Lite-Setup-Windows-x64.exe)
