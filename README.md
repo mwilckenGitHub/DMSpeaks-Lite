@@ -53,11 +53,11 @@ The [earlier decoder-only update](https://raw.githubusercontent.com/mwilckenGitH
 
 ## Fetch your first character's name
 
-1. In Fish Audio, sign in and choose **Get your API key**. Copy the key when it appears. [Fish Audio Get Started](https://fish.audio/app/developers/get-started/)
+1. In the Fish Audio Developer Dashboard, choose **Create API Key** and copy the key.
 2. Under **Fetch name audio**, open **Choose a speech provider** and select **Fish Audio (free)**. Lite opens **Speech settings** farther down the page. Scroll down if needed, paste the key into **Fish API token**, then choose **Save Fetch Settings → Test Saved Connection**.
 3. Log in to your character and type `/reload` in WoW chat. In Lite, choose **Refresh character**, leave **Starting area** selected, and start the fetch. Reload WoW again after the fetch finishes.
 
-Fish Audio lists S2.1 Pro Free through November 30, 2026. [Current Fish Audio offer](https://fish.audio/developers/#pricing)
+Fish Audio lists free access to its S2.1 Pro Free API through **Monday, November 30, 2026**. [Fish Audio’s free API announcement](https://fish.audio/blog/s2-1-pro-free-api/)
 
 ## License
 
