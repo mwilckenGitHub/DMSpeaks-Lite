@@ -18,7 +18,8 @@ from urllib.parse import urlencode
 LOOPBACK = "127.0.0.1"
 READY = "/api/wow-fetch-ready"
 PROTOCOL = 4
-IDLE_STATES = {"connected", "paused", "complete", "coverage", "preview", "unavailable"}
+IDLE_STATES = {"connected", "paused", "stopped", "complete", "coverage", "preview", "unavailable"}
+CLOSE_CONFIRMATION_REQUIRED = 10  # Informs the interactive Maintenance wizard that it should prompt.
 BUILD_NAME = re.compile(r"[0-9a-f]{64}\Z")
 INSTALL_NAME = re.compile(r"[0-9a-f]{20}\Z")
 
@@ -149,8 +150,8 @@ def replace_process(pid, builds, expected_build, still_owns_listener):
         kernel.CloseHandle(handle)
 
 
-def switch_previous_listener(package, game, data, build, client_id):
-    """Retire an idle listener for this client, keeping the requested build if set."""
+def switch_previous_listener(package, game, data, build, client_id, *, check_only=False):
+    """Check or retire this client's idle listener while preserving the requested build."""
     next_step = "continue uninstalling" if build is None else "open DMSpeaks Lite again"
     addons = game / "Interface/AddOns"
     snapshots = (addons / "DMSpeaksLiteStatus/Snapshot.lua", addons / "DMSpeaksLite/Status.lua")
@@ -181,6 +182,9 @@ def switch_previous_listener(package, game, data, build, client_id):
             def still_owns_listener():
                 return listening_pid(port) == pid and probe(port, game, data, client_id) == old
 
+            if check_only:
+                # Release the writer lock before Maintenance prompts. The stop call checks again.
+                return still_owns_listener()
             if replace_process(pid, package.parent, old["build"], still_owns_listener):
                 return True
     return False
@@ -192,15 +196,19 @@ def main():
     from wow_fetch_desktop import (client_id, companion_build_id, default_data_folder, listener_state,
                                    main as launch, store_inputs, windows_runtime_listener_ports)
 
-    uninstall = sys.argv[1:2] == ["--stop-for-uninstall"]
+    mode = sys.argv[1]
+    check_only = mode == "--check-for-uninstall"
+    uninstall = check_only or mode == "--stop-for-uninstall"
     game = Path(sys.argv[2] if uninstall else sys.argv[1]).resolve()
     data = default_data_folder()
     if uninstall:
         try:
-            stopped = switch_previous_listener(package, game, data, None, client_id)
+            stopped = switch_previous_listener(package, game, data, None, client_id, check_only=check_only)
         except (OSError, ValueError, sqlite3.Error) as error:
             print(f"Could not close DMSpeaks Lite. {error}", flush=True)
             return 1
+        if check_only:
+            return CLOSE_CONFIRMATION_REQUIRED if stopped else 0
         if stopped:
             print("Closed the idle DMSpeaks Lite process.", flush=True)
         return 0

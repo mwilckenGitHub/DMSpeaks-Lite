@@ -223,7 +223,7 @@ def build(args):
             LICENSE_NOTICES=page(recipe / "notices.txt", notices),
             PLACEMENT=placement, OWNERS=support / "addon-files.txt.gz",
             STOCK_OWNERS=stock, COMPATIBILITY_ICON=icon, LEGACY_ICON=icon,
-            REFRESH=support / "refresh_runtime.py", OPEN_LITE_SCRIPT=support / "open_lite.py",
+            REFRESH=support / "refresh_runtime.py", OPEN_LITE_SCRIPT=ROOT / "installer/open_lite.py",
             UPDATE_SCRIPT=support / "apply_beta_update.py", RUNTIME_DELTA=refresh, EXTERNAL_MEDIA=media,
             STAGE_RELEASE_MEDIA=staging, STAGE_MEDIA_PROGRESS=progress,
             RELEASE_MEDIA_PROGRESS=MEDIA_PROGRESS_END,
@@ -239,6 +239,7 @@ def build(args):
         native.extract(seven, extracted / native.WIZARD, maintenance)
         for shell in (extracted, maintenance):
             found = shell / "$PLUGINSDIR"
+            native.require(found / "open_lite.py", native.digest(settings["OPEN_LITE_SCRIPT"]))
             native.require(found / "stage_release_media.py", native.digest(settings["STAGE_RELEASE_MEDIA"]))
             native.require(found / "setup_media_progress.py", native.digest(progress))
             native.require(found / "lite-media.json", native.digest(media))

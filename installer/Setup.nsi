@@ -929,6 +929,12 @@ remove:
     IfFileExists "$GamePython" 0 stop_unavailable
     IfFileExists "$1\runtime\python\python313.dll" 0 stop_unavailable
     IfFileExists "$1\source\wow_fetch_desktop.py" 0 stop_unavailable
+    IfSilent close_lite
+    !insertmacro RunSupport `"$GamePython" -I -B "$PLUGINSDIR\open_lite.py" --check-for-uninstall "$GameFolder\."` $0
+    StrCmp $0 "0" removed_game_check
+    StrCmp $0 "10" 0 stop_unavailable
+    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "$(CloseLiteForRemoval)" /SD IDNO IDNO removal_canceled
+close_lite:
     !insertmacro RunSupport `"$GamePython" -I -B "$PLUGINSDIR\open_lite.py" --stop-for-uninstall "$GameFolder\."` $0
     StrCmp $0 "0" removed_game_check
 stop_unavailable:
@@ -1051,6 +1057,12 @@ repair_canceled:
     StrCpy $MaintenanceTitle "$(RepairCanceled)"
     StrCpy $MaintenanceDescription "$(RepairCanceledDetails)"
     !insertmacro ShowPhase "$(RepairCanceled)"
+    SetErrorLevel 4
+    Goto section_end
+removal_canceled:
+    StrCpy $MaintenanceTitle "$(RemovalCanceled)"
+    StrCpy $MaintenanceDescription "$(RemovalCanceledDetails)"
+    !insertmacro ShowPhase "$(RemovalCanceled)"
     SetErrorLevel 4
     Goto section_end
 repair_files_in_use:

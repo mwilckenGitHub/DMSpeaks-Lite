@@ -8,10 +8,10 @@ GPT-6 Codex assisted with development, packaging, and testing.
 
 ## Install on Windows
 
-The latest Windows beta is **Beta 12.5**. Setup downloads the files you select from the [DMSpeaks Lite WoW Audio Repository](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/wow-audio-repository). [Beta 12.5 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.5)
+The latest Windows beta is **Beta 12.6**. Setup downloads the files you select from the [DMSpeaks Lite WoW Audio Repository](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/wow-audio-repository). [Beta 12.6 release notes](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/tag/v0.1.0-beta.12.6)
 
 1. Close WoW. Make sure **Spoken** and **Spoken Quests** are installed in World of Warcraft Forever. [Get Spoken](https://www.curseforge.com/wow/addons/spoken)
-2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.5/DMSpeaks-Lite-Setup-Windows-x64.exe)
+2. Download and run **DMSpeaks Lite Setup**. If Windows shows **Windows protected your PC**, choose **More info → Run anyway** if Windows offers it and you opened Setup from this release. [Download Windows Setup](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.6/DMSpeaks-Lite-Setup-Windows-x64.exe)
 3. Review the license and credits, then select your WoW Forever folder if prompted.
 4. On **Choose voice packs**, check **All voice packs** or select **Alliance quests**, **Horde quests**, **Shared quests**, or **Gossip** individually. Use **+** and **−** to browse the folders. Each selected pack includes both of its folders. Setup downloads the common files and the selected packs.
 5. Choose your shortcuts, select **Install**, then select **Finish** to open Lite.
@@ -24,8 +24,8 @@ To add packs later, run Setup again. Clearing a box skips that pack download and
 
 Setup downloads the two required ZIPs and the English voice packs you choose. For an offline install, download those ZIPs and leave them zipped beside the Setup executable.
 
-- **Required files** [DMSpeaks-WoW.zip](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-WoW.zip) · [DMSpeaks-Lite-Name-Data.zip](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Name-Data.zip)
-- **Optional voice packs** [Alliance quests](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Alliance-Audio.zip) · [Horde quests](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Horde-Audio.zip) · [Shared quests](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Shared-Audio.zip) · [Gossip](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/v0.1.0-beta.12.4/DMSpeaks-Lite-Gossip-Audio.zip)
+- **Required files** [DMSpeaks-WoW.zip](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/wow-audio-repository/DMSpeaks-WoW.zip) · [DMSpeaks-Lite-Name-Data.zip](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/wow-audio-repository/DMSpeaks-Lite-Name-Data.zip)
+- **Optional voice packs** [Alliance quests](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/wow-audio-repository/DMSpeaks-Lite-Alliance-Audio.zip) · [Horde quests](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/wow-audio-repository/DMSpeaks-Lite-Horde-Audio.zip) · [Shared quests](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/wow-audio-repository/DMSpeaks-Lite-Shared-Audio.zip) · [Gossip](https://github.com/mwilckenGitHub/DMSpeaks-Lite/releases/download/wow-audio-repository/DMSpeaks-Lite-Gossip-Audio.zip)
 
 Lite connects when Spoken provides the playback functions it uses, regardless of version number. It verifies the installed English recording and caption before selecting a matching plan. [Spoken add-on and voice packs](https://www.curseforge.com/wow/addons/spoken#description)
 
