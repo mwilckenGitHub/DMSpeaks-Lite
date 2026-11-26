@@ -172,11 +172,12 @@ def build(args):
                                      + args.release_tag)
         media = work / "lite-media.json"
         write_json(media, info)
-        setup_id = sha256((native.digest(media) + native.digest(ownership) + native.digest(pruner)
-                           + native.digest(ROOT / "installer/Setup.nsi")).encode("ascii")).hexdigest()
+        setup_sources = (*native.SETUP_SOURCES, "VoicePackPage.nsh")
+        setup_inputs = (media, ownership, pruner, *(ROOT / "installer" / name for name in setup_sources))
+        setup_id = sha256("".join(native.digest(path) for path in setup_inputs).encode("ascii")).hexdigest()
         recipe = work / "installer"
         recipe.mkdir()
-        for name in native.SETUP_SOURCES:
+        for name in setup_sources:
             body = (ROOT / "installer" / name).read_bytes()
             (recipe / name).write_bytes(body.replace(b"${__FILEDIR__}/", b"${__FILEDIR__}\\"))
         for name, packaged_name in (("maintenance-core.zip", "maintenance-core.zip"),

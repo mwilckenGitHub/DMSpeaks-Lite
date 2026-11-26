@@ -8,6 +8,8 @@ Name "${EDITION}"
 OutFile "${OUTPUT}"
 !define MUI_ICON "${ICON}"
 !define MUI_UNICON "${ICON}"
+!define MUI_CUSTOMFUNCTION_GUIINIT RegisterSetupWizard
+!define MUI_CUSTOMFUNCTION_UNGUIINIT un.RegisterMaintenanceWizard
 RequestExecutionLevel user
 XPStyle on
 CRCCheck force
@@ -60,7 +62,7 @@ Var HelperOutput
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE RequireSpoken
 !insertmacro MUI_PAGE_DIRECTORY
 !ifdef EXTERNAL_MEDIA
-Page custom VoicePackPage ReadVoicePackChoices
+Page custom VoicePackPage
 !endif
 Page custom ShortcutPage ReadShortcutChoices
 !define MUI_PAGE_HEADER_TEXT "$(InstallingTitle)"
@@ -93,13 +95,6 @@ Var PreviousGameFolder
 Var ArchivePath
 !ifdef EXTERNAL_MEDIA
 Var VoicePackMask
-Var VoicePackFolder
-Var ExistingVoicePacks
-Var VoicePackTree
-Var AllianceCheck
-Var HordeCheck
-Var SharedCheck
-Var GossipCheck
 
 !macro StageReleaseMedia game wow options result
     InitPluginsDir
@@ -232,117 +227,7 @@ Function ReadShortcutChoices
 FunctionEnd
 
 !ifdef EXTERNAL_MEDIA
-; Match the bit order used by stage_release_media.COLLECTIONS.
-!macro VoicePacks action
-    !insertmacro ${action} 1 27u "Alliance" $AllianceCheck
-    !insertmacro ${action} 2 47u "Horde" $HordeCheck
-    !insertmacro ${action} 4 67u "Shared" $SharedCheck
-    !insertmacro ${action} 8 87u "Gossip" $GossipCheck
-!macroend
-
-!macro FindVoicePack bit y name control
-    ${If} ${FileExists} "$INSTDIR\Interface\AddOns\DMSpeaksPersonalized${name}\DMSpeaksPersonalized${name}.toc"
-        IntOp $ExistingVoicePacks $ExistingVoicePacks | ${bit}
-    ${EndIf}
-!macroend
-
-Function FindInstalledVoicePacks
-    StrCpy $ExistingVoicePacks 0
-    !insertmacro VoicePacks FindVoicePack
-FunctionEnd
-
-!macro AddVoicePack bit y name control
-    ${NSD_CreateCheckbox} 5u ${y} 105u 16u "$(VoicePack${name})"
-    Pop ${control}
-    ${NSD_OnClick} ${control} VoicePackSelectionChanged
-    IntOp $1 $VoicePackMask & ${bit}
-    ${If} $1 != 0
-        ${NSD_Check} ${control}
-    ${EndIf}
-!macroend
-
-!macro ReadVoicePack bit y name control
-    ${NSD_GetState} ${control} $1
-    ${If} $1 == ${BST_CHECKED}
-        IntOp $VoicePackMask $VoicePackMask | ${bit}
-    ${EndIf}
-!macroend
-
-!define LITE_TVM_DELETEITEM 0x1101
-!define LITE_TVM_EXPAND 0x1102
-!define LITE_TVM_INSERTITEMW 0x1132
-!define LITE_TVI_ROOT -65536
-!define LITE_TVI_LAST -65534
-
-!macro InsertVoiceFolder parent name result
-    System::Call '*(&t64 "${name}") p.r4'
-    ; TVINSERTSTRUCTW contains two pointers then TVITEMW on amd64.
-    ; The second i field supplies the alignment gap before TVITEMW.hItem.
-    System::Call '*(p ${parent}, p ${LITE_TVI_LAST}, i 1, i 0, p 0, i 0, i 0, p r4, i 0, i 0, i 0, i 0, p 0) p.r5'
-    SendMessage $VoicePackTree ${LITE_TVM_INSERTITEMW} 0 $5 ${result}
-    System::Free $5
-    System::Free $4
-!macroend
-
-!macro ShowVoicePackFolders bit y name control
-    IntOp $1 $VoicePackMask & ${bit}
-    ${If} $1 != 0
-        !insertmacro InsertVoiceFolder $2 "DMSpeaksSpoken${name}" $3
-        !insertmacro InsertVoiceFolder $2 "DMSpeaksPersonalized${name}" $3
-    ${EndIf}
-!macroend
-
-Function RefreshVoicePackFolders
-    SendMessage $VoicePackTree ${LITE_TVM_DELETEITEM} 0 ${LITE_TVI_ROOT}
-    !insertmacro InsertVoiceFolder ${LITE_TVI_ROOT} "Interface\AddOns" $2
-    !insertmacro InsertVoiceFolder $2 "DMSpeaksLite" $3
-    !insertmacro InsertVoiceFolder $2 "DMSpeaksNameData" $3
-    !insertmacro InsertVoiceFolder $2 "DMSpeaksSpokenNames" $3
-    !insertmacro VoicePacks ShowVoicePackFolders
-    SendMessage $VoicePackTree ${LITE_TVM_EXPAND} 2 $2
-FunctionEnd
-
-Function VoicePackSelectionChanged
-    Pop $0
-    Call ReadVoicePackChoices
-    Call RefreshVoicePackFolders
-FunctionEnd
-
-Function VoicePackPage
-    ${If} $VoicePackFolder != $INSTDIR
-        StrCpy $VoicePackFolder $INSTDIR
-        Call FindInstalledVoicePacks
-        StrCpy $VoicePackMask $ExistingVoicePacks
-    ${EndIf}
-    !insertmacro MUI_HEADER_TEXT "$(VoicePackTitle)" "$(VoicePackSubtitle)"
-    nsDialogs::Create 1018
-    Pop $0
-    StrCmp $0 error failed
-    ${NSD_CreateLabel} 0 3u 100% 22u "$(VoicePackDescription)"
-    Pop $0
-    !insertmacro VoicePacks AddVoicePack
-    ${NSD_CreateLabel} 114u 22u 182u 13u "$(VoicePackFolders)"
-    Pop $0
-    ${NSD_InitCommonControlsEx} 0x0002 ; ICC_TREEVIEW_CLASSES
-    ; Visible, keyboard-accessible folder tree with native lines and expansion.
-    nsDialogs::CreateControl "SysTreeView32" 0x50010027 0x00000200 114u 35u 182u 90u ""
-    Pop $VoicePackTree
-    StrCmp $VoicePackTree error failed
-    Call RefreshVoicePackFolders
-    ${NSD_CreateLabel} 0 133u 100% 19u "$(VoicePackNote)"
-    Pop $0
-    nsDialogs::Show
-    Return
-failed:
-    SetErrorLevel 1
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(VoicePackPageError)"
-    Quit
-FunctionEnd
-
-Function ReadVoicePackChoices
-    StrCpy $VoicePackMask 0
-    !insertmacro VoicePacks ReadVoicePack
-FunctionEnd
+!include "${__FILEDIR__}/VoicePackPage.nsh"
 !endif
 
 Function OpenLite
@@ -455,6 +340,11 @@ FunctionEnd
     !insertmacro ShowPhase "$(SetupFailed)"
     Abort "${message}"
 !macroend
+
+; Publish the Setup window so a duplicate launch can restore it.
+Function RegisterSetupWizard
+    !insertmacro RegisterMaintenanceWindow
+FunctionEnd
 
 Function .onInit
     IfSilent 0 acceptance_checked
@@ -828,6 +718,11 @@ launch:
 unknown:
     SetErrorLevel 1
     !insertmacro FailPhase "$(KnownGameMissing)"
+FunctionEnd
+
+; Maintenance uses the same window marker and lock as Setup.
+Function un.RegisterMaintenanceWizard
+    !insertmacro RegisterMaintenanceWindow
 FunctionEnd
 
 Function un.MaintenancePage

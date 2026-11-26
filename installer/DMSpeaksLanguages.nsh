@@ -16,7 +16,6 @@ LangString EulaAcceptance ${LANG_ENGLISH} "I accept the DMSpeaks Lite End-User L
 LangString NoticesTitle ${LANG_ENGLISH} "License and credits"
 LangString NoticesSubtitle ${LANG_ENGLISH} "DMSpeaks Lite and its contributors"
 LangString NoticesDescription ${LANG_ENGLISH} "Read the DMSpeaks license and the notices for Spoken and the bundled Windows components."
-LangString MaintenanceBusy ${LANG_ENGLISH} "Another DMSpeaks setup or maintenance window is open. Close it and try again."
 LangString RemovingOldFiles ${LANG_ENGLISH} "Removing older DMSpeaks files..."
 LangString CleanupIncomplete ${LANG_ENGLISH} "DMSpeaks could not finish cleaning up the previous installation. Close any running copies of Lite, then retry. Show details has the reason."
 LangString MaintenanceCaption ${LANG_ENGLISH} "${EDITION} Maintenance"
@@ -27,12 +26,12 @@ LangString ChooseGameFolderSubtitle ${LANG_ENGLISH} "Setup installs the voices a
 !ifdef EXTERNAL_MEDIA
 LangString VoicePackTitle ${LANG_ENGLISH} "Choose voice packs"
 LangString VoicePackSubtitle ${LANG_ENGLISH} "Select the English DMSpeaks Lite voices you want to download."
-LangString VoicePackDescription ${LANG_ENGLISH} "Check any packs you want. Lite and common name data are included with every installation."
+LangString VoicePackDescription ${LANG_ENGLISH} "Check the packs you want. Use + or - to view their folders. Both folders come with each pack."
+LangString VoicePackAll ${LANG_ENGLISH} "All voice packs"
 LangString VoicePackAlliance ${LANG_ENGLISH} "Alliance quests"
 LangString VoicePackHorde ${LANG_ENGLISH} "Horde quests"
 LangString VoicePackShared ${LANG_ENGLISH} "Shared quests"
 LangString VoicePackGossip ${LANG_ENGLISH} "Gossip"
-LangString VoicePackFolders ${LANG_ENGLISH} "Folders Setup will install"
 LangString VoicePackNote ${LANG_ENGLISH} "Run Setup again to add packs. Clearing a box keeps any pack already installed."
 LangString VoicePackPageError ${LANG_ENGLISH} "Setup could not open the voice pack selection page."
 !endif
