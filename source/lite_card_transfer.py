@@ -532,9 +532,23 @@ class CardTransfer:
                 raise ValueError("A synced card index is too large.")
             def read_shared(digest):
                 source = objects / (digest + ".ogg")
-                if not source.is_file() or source.stat().st_size > MAX_CLIP:
+                try:
+                    data = read_shared_file(source, MAX_CLIP)
+                except FileNotFoundError:
+                    data = None
+                # Peers may already advertise a missing or damaged copy of a local take.
+                local_copy = sources.get(digest)
+                if local_copy is not None and (data is None or sha256(data).hexdigest() != digest):
+                    try:
+                        verified = checked_audio(read_shared_file(local_copy, MAX_CLIP), digest)
+                    except (OSError, ValueError):
+                        pass
+                    else:
+                        write_shared_file(source, verified)
+                        return read_shared_file(source, MAX_CLIP)
+                if data is None:
                     raise ValueError("Waiting for recordings to arrive in the sync folder.")
-                return read_shared_file(source, MAX_CLIP)
+                return data
             raw = read_shared_file(peer, MAX_INDEX)
             peer_cards.update(card_fingerprints(*validate_manifest(raw)))
             result = self.merge(raw, read_shared, request_locked=request_locked) if rescan and not self.ingress.active else {"added": 0, "conflicts": 0}

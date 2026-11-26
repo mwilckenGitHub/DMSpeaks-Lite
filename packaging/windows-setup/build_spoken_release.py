@@ -40,6 +40,7 @@ COMPATIBLE_DESKTOP_BUILDS = {
     "8808f1fe1ee73bf24f9cf649d9b5d57bac8f83c72200941efad4445511e516a4",
     "69bc7900f1bc26a7b0b696a880764214a7865314e616d2b66032d8d983118c95",
     "8382753af1be0cdf33ae2bba2ac9db9988cbba5859af0bc6ae737f087e61c58b",
+    "12f73b569639a1612c492c5b3575e7da2a008207dd1cb350971b04a6ecceab9f",
 }
 
 
@@ -62,6 +63,7 @@ def update_program(payload, support, work, previous, *, prior_desktop=None):
         "english_name_pronunciation.py",
         "lite_addon/NamePlayback.lua",
         "lite_addon/Settings.lua",
+        "lite_card_transfer.py",
         "lite_game_ingress.py",
         "lite_name_settings.py",
         "lite_portable_constraints.py",
@@ -103,9 +105,15 @@ def update_program(payload, support, work, previous, *, prior_desktop=None):
     for name in sorted(manifest["files"]):
         path = source / name
         digest = native.digest(path)
-        if "source/" + name not in changed and digest != manifest["files"][name][1]:
-            raise ValueError(f"Registered runtime file differs: {name}")
-        manifest["files"][name][1] = digest
+        accepted, registered = manifest["files"][name]
+        if digest != registered:
+            if "source/" + name not in changed:
+                raise ValueError(f"Registered runtime file differs: {name}")
+            # A compatible installation may already contain the previously shipped file.
+            accepted = accepted if isinstance(accepted, list) else [accepted]
+            if registered not in accepted:
+                accepted = [*accepted, registered]
+            manifest["files"][name] = [accepted, digest]
         relative = Path(name)
         if ((len(relative.parts) == 1 and relative.suffix == ".py")
                 or relative.parts[0] in {"formats", "lite_addon", "lite_web", "third_party"}):

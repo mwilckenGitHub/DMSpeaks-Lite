@@ -77,5 +77,19 @@ class SharedNameCards(unittest.TestCase):
             self.assertEqual(sender.cards.synchronize()["state"], "synced")
             self.assertEqual(sender.cards.storage_states({ident: profile})[ident]["state"], "synced")
 
+            # A cold scan sees the bad file even though both devices own the good take.
+            object_path.write_bytes(body + b"changed")
+            sender = GameIngress(sender.app, sender.root, None)
+            recipient = GameIngress(recipient.app, recipient.root, None)
+            self.assertEqual(sender.cards.synchronize()["state"], "synced")
+            self.assertEqual(object_path.read_bytes(), body)
+            self.assertEqual(recipient.cards.synchronize()["added"], 0)
+
+            # A temporarily missing remote object can be repaired from either device.
+            object_path.unlink()
+            recipient = GameIngress(recipient.app, recipient.root, None)
+            self.assertEqual(recipient.cards.synchronize()["state"], "synced")
+            self.assertEqual(object_path.read_bytes(), body)
+
             self.assertEqual(recipient.cards.configure_sync("")["state"], "off")
             self.assertEqual(playable_saved_names(recipient.addons), index)
