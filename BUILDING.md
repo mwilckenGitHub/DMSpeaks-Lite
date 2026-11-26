@@ -50,6 +50,8 @@ When the six ZIPs match an existing published media set by SHA-256, build Setup 
 
 To include reviewed audio joins with the same release media, supply the measured overlay ZIP with `--join-overlay` and its SHA-256 with `--join-overlay-sha256`. Setup verifies the source clips and the overlay's file hashes. The build receipt lists the installed repair files.
 
+For Playback in Context, pass the matching projection JSON as `--recording-context`. Generate it in the Lua replay environment with `prepare_recording_projection.py --media <media folder> --join-overlay <overlay ZIP> --output <projection JSON>`. The companion pins the projection checksum, and Setup verifies it against the exact game catalog, stock registrations, and audio repair bundle before packaging.
+
 Setup requires Spoken in the selected game folder. Its voice pack page lets the player choose which English Lite packs to install. The common Lite files and name data are included in every installation. Existing Lite packs are kept when their boxes are cleared. Setup checks local ZIPs first, then downloads the missing common files and selected packs from the release supplied at build time.
 
 Before pointing the README at a new release, verify the public installer and the ZIPs at its media tag against the build receipt. Run the downloadable Setup with an empty cache and no adjacent ZIPs. Check that a one-pack selection downloads just the common files and that pack, and that an all-packs selection can install every archive.

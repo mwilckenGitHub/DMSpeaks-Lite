@@ -17,7 +17,7 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build as native
-from join_repair_overlay import load_join_overlay
+from join_repair_overlay import install_recording_projection, load_join_overlay
 from spoken_game_media import PACK_ROOTS, placement_script, split_game
 
 
@@ -66,6 +66,7 @@ def update_program(payload, support, work, previous, *, prior_desktop=None):
         "lite_name_settings.py",
         "lite_portable_constraints.py",
         "lite_portable_inputs.py",
+        "lite_recording_context.py",
         "lite_web/card-menu.js",
         "lite_web/desktop-help.js",
         "lite_web/index.html",
@@ -229,6 +230,9 @@ def build(args):
             archives = [args.reuse_media / "Install files" / name for name in (native.GAME, *PACK_ROOTS)]
             overlay, previous_overlay = load_join_overlay(
                 args.join_overlay, archives, ROOT / "source/lite_addon/NamePlayback.lua")
+            if args.recording_context:
+                install_recording_projection(args.recording_context, archives, overlay, previous_overlay,
+                                             ROOT / "source/lite_recording_context.py")
     files = args.previous / "Install files"
     for name in (native.BASE_SETUP, native.GAME):
         native.require(files / name, previous["files"][name]["sha256"])
@@ -358,6 +362,7 @@ if __name__ == "__main__":
     parser.add_argument("--reuse-media", type=Path, help="Verified release folder containing the existing ZIPs")
     parser.add_argument("--reuse-media-sha256", help="SHA-256 of the existing release receipt")
     parser.add_argument("--join-overlay", type=Path, help="Verified add-on overlay for reviewed spoken joins")
+    parser.add_argument("--recording-context", type=Path, help="Reviewed recipes for Playback in Context")
     parser.add_argument("--join-overlay-sha256", help="SHA-256 of the reviewed spoken join overlay")
     parser.add_argument("--media-tag", "--release-tag", dest="media_tag",
                         help="Public GitHub release tag hosting the matching media ZIPs")
@@ -366,6 +371,8 @@ if __name__ == "__main__":
         parser.error("--reuse-media requires --reuse-media-sha256 and --media-tag")
     if bool(args.join_overlay) != bool(args.join_overlay_sha256) or (args.join_overlay and not args.reuse_media):
         parser.error("A spoken join overlay requires its SHA-256 and the verified media it updates.")
+    if args.recording_context and not args.join_overlay:
+        parser.error("The reviewed dialogue projection requires its spoken join overlay.")
     if args.media_tag and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.media_tag):
         parser.error("Use a simple GitHub media release tag.")
     build(args)

@@ -1,5 +1,6 @@
 """Build the small add-on overlay for reviewed variable-audio joins."""
 
+import ast
 from contextlib import ExitStack
 from hashlib import sha256
 import json
@@ -109,3 +110,44 @@ def load_join_overlay(bundle, archives, playback):
         })
         previous = {PROGRAM: sha256(original_program).hexdigest(), TOC: sha256(original_toc).hexdigest()}
         return overlays, previous
+
+
+def install_recording_projection(path, archives, overlay, previous, app_source):
+    """Bind the desktop recipes to the exact files Setup will install."""
+    bindings = {}
+    for statement in ast.parse(app_source.read_text(encoding="utf-8")).body:
+        if isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name) and target.id in {"CONTEXT_PROJECTION_SHA256", "REVIEWED_JOIN_PLAYBACK"}:
+                    bindings[target.id] = ast.literal_eval(statement.value)
+    raw = path.read_bytes()
+    if (sha256(raw).hexdigest() != bindings["CONTEXT_PROJECTION_SHA256"]
+            or sha256(overlay[PROGRAM]).hexdigest() != bindings["REVIEWED_JOIN_PLAYBACK"]):
+        raise ValueError("The reviewed dialogue recipes or playback differ from the application bindings.")
+    projection = json.loads(raw)
+    if projection.get("format") != "dmspeaks-reviewed-name-contexts-2":
+        raise ValueError("The reviewed dialogue projection has an unexpected format.")
+    expected = {
+        TOC: projection["toc_sha256"],
+        MANIFEST: projection["join_repairs_sha256"],
+        f"{ADDON}/DialogueIndex.lua": projection["index_sha256"],
+        f"{ADDON}/ManagedPlayback.json": projection["managed_sha256"],
+    }
+    for name, checksum in projection["registries"].items():
+        if PurePosixPath(name).name != name or not name.endswith(".lua"):
+            raise ValueError("The reviewed dialogue projection contains an invalid registry path.")
+        expected[f"{ADDON}/{name}"] = checksum
+    member = f"{ADDON}/RecordingContexts.json"
+    with ExitStack() as stack:
+        sources = {}
+        for archive in archives:
+            source = stack.enter_context(ZipFile(archive))
+            for name in source.namelist():
+                if name in expected or name == member:
+                    sources[name] = source
+        for name, checksum in expected.items():
+            data = overlay[name] if name in overlay else sources[name].read(name)
+            if sha256(data).hexdigest() != checksum:
+                raise ValueError(f"The reviewed dialogue projection does not match {name}.")
+        previous[member] = sha256(sources[member].read(member)).hexdigest()
+        overlay[member] = raw
